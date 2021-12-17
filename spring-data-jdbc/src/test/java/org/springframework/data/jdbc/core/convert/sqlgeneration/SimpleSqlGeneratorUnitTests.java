@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.jdbc.core.convert;
+package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.*;
@@ -32,6 +32,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jdbc.core.PropertyPathTestingUtils;
+import org.springframework.data.jdbc.core.convert.BasicJdbcConverter;
+import org.springframework.data.jdbc.core.convert.Identifier;
+import org.springframework.data.jdbc.core.convert.JdbcConverter;
+import org.springframework.data.jdbc.core.convert.NonQuotingDialect;
+import org.springframework.data.jdbc.core.convert.sqlgeneration.SimpleSqlGenerator;
 import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.core.mapping.PersistentPropertyPathTestUtils;
@@ -56,7 +61,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.lang.Nullable;
 
 /**
- * Unit tests for the {@link SqlGenerator}.
+ * Unit tests for the {@link SimpleSqlGenerator}.
  *
  * @author Jens Schauder
  * @author Greg Turnquist
@@ -71,7 +76,7 @@ import org.springframework.lang.Nullable;
  * @author Diego Krupitza
  */
 @SuppressWarnings("Convert2MethodRef")
-class SqlGeneratorUnitTests {
+class SimpleSqlGeneratorUnitTests {
 
 	private static final Identifier BACKREF = Identifier.of(unquoted("backref"), "some-value", String.class);
 
@@ -80,23 +85,24 @@ class SqlGeneratorUnitTests {
 	private final JdbcConverter converter = new BasicJdbcConverter(context, (identifier, path) -> {
 		throw new UnsupportedOperationException();
 	});
-	private SqlGenerator sqlGenerator;
+
+	private SimpleSqlGenerator sqlGenerator;
 
 	@BeforeEach
 	void setUp() {
 		this.sqlGenerator = createSqlGenerator(DummyEntity.class);
 	}
 
-	SqlGenerator createSqlGenerator(Class<?> type) {
+	SimpleSqlGenerator createSqlGenerator(Class<?> type) {
 
 		return createSqlGenerator(type, NonQuotingDialect.INSTANCE);
 	}
 
-	SqlGenerator createSqlGenerator(Class<?> type, Dialect dialect) {
+	SimpleSqlGenerator createSqlGenerator(Class<?> type, Dialect dialect) {
 
 		RelationalPersistentEntity<?> persistentEntity = context.getRequiredPersistentEntity(type);
 
-		return new SqlGenerator(context, converter, persistentEntity, dialect);
+		return new SimpleSqlGenerator(context, converter, persistentEntity, dialect);
 	}
 
 	@Test // DATAJDBC-112
@@ -271,7 +277,7 @@ class SqlGeneratorUnitTests {
 	@Test // GH-821
 	void findAllSortedWithNullHandling_resolvesNullHandlingWhenDialectSupportsIt() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(DummyEntity.class, PostgresDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(DummyEntity.class, PostgresDialect.INSTANCE);
 
 		String sql = sqlGenerator
 				.getFindAll(Sort.by(new Sort.Order(Sort.Direction.ASC, "name", Sort.NullHandling.NULLS_LAST)));
@@ -282,7 +288,7 @@ class SqlGeneratorUnitTests {
 	@Test // GH-821
 	void findAllSortedWithNullHandling_ignoresNullHandlingWhenDialectDoesNotSupportIt() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(DummyEntity.class, SqlServerDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(DummyEntity.class, SqlServerDialect.INSTANCE);
 
 		String sql = sqlGenerator
 				.getFindAll(Sort.by(new Sort.Order(Sort.Direction.ASC, "name", Sort.NullHandling.NULLS_LAST)));
@@ -443,7 +449,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-219
 	void updateWithVersion() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(VersionedEntity.class, AnsiDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(VersionedEntity.class, AnsiDialect.INSTANCE);
 
 		assertThat(sqlGenerator.getUpdateWithVersion()).containsSubsequence( //
 				"UPDATE", //
@@ -458,7 +464,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-264
 	void getInsertForEmptyColumnListPostgres() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(IdOnlyEntity.class, PostgresDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(IdOnlyEntity.class, PostgresDialect.INSTANCE);
 
 		String insert = sqlGenerator.getInsert(emptySet());
 
@@ -468,7 +474,7 @@ class SqlGeneratorUnitTests {
 	@Test // GH-777
 	void gerInsertForEmptyColumnListMsSqlServer() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(IdOnlyEntity.class, SqlServerDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(IdOnlyEntity.class, SqlServerDialect.INSTANCE);
 
 		String insert = sqlGenerator.getInsert(emptySet());
 
@@ -478,7 +484,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-334
 	void getInsertForQuotedColumnName() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(EntityWithQuotedColumnName.class, AnsiDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithQuotedColumnName.class, AnsiDialect.INSTANCE);
 
 		String insert = sqlGenerator.getInsert(emptySet());
 
@@ -489,7 +495,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-266
 	void joinForOneToOneWithoutIdIncludesTheBackReferenceOfTheOuterJoin() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(ParentOfNoIdChild.class, AnsiDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(ParentOfNoIdChild.class, AnsiDialect.INSTANCE);
 
 		String findAll = sqlGenerator.getFindAll();
 
@@ -500,7 +506,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-262
 	void update() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(DummyEntity.class, AnsiDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(DummyEntity.class, AnsiDialect.INSTANCE);
 
 		assertThat(sqlGenerator.getUpdate()).containsSubsequence( //
 				"UPDATE", //
@@ -513,7 +519,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-324
 	void readOnlyPropertyExcludedFromQuery_when_generateUpdateSql() {
 
-		final SqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class, AnsiDialect.INSTANCE);
+		final SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class, AnsiDialect.INSTANCE);
 
 		assertThat(sqlGenerator.getUpdate()).isEqualToIgnoringCase( //
 				"UPDATE \"ENTITY_WITH_READ_ONLY_PROPERTY\" " //
@@ -525,7 +531,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-334
 	void getUpdateForQuotedColumnName() {
 
-		SqlGenerator sqlGenerator = createSqlGenerator(EntityWithQuotedColumnName.class, AnsiDialect.INSTANCE);
+		SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithQuotedColumnName.class, AnsiDialect.INSTANCE);
 
 		String update = sqlGenerator.getUpdate();
 
@@ -537,7 +543,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-324
 	void readOnlyPropertyExcludedFromQuery_when_generateInsertSql() {
 
-		final SqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class, AnsiDialect.INSTANCE);
+		final SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class, AnsiDialect.INSTANCE);
 
 		assertThat(sqlGenerator.getInsert(emptySet())).isEqualToIgnoringCase( //
 				"INSERT INTO \"ENTITY_WITH_READ_ONLY_PROPERTY\" (\"X_NAME\") " //
@@ -548,7 +554,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-324
 	void readOnlyPropertyIncludedIntoQuery_when_generateFindAllSql() {
 
-		final SqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
+		final SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
 
 		assertThat(sqlGenerator.getFindAll()).isEqualToIgnoringCase("SELECT "
 				+ "entity_with_read_only_property.x_id AS x_id, " + "entity_with_read_only_property.x_name AS x_name, "
@@ -559,7 +565,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-324
 	void readOnlyPropertyIncludedIntoQuery_when_generateFindAllByPropertySql() {
 
-		final SqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
+		final SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
 
 		assertThat(sqlGenerator.getFindAllByProperty(BACKREF, unquoted("key-column"), true)).isEqualToIgnoringCase( //
 				"SELECT " //
@@ -576,7 +582,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-324
 	void readOnlyPropertyIncludedIntoQuery_when_generateFindAllInListSql() {
 
-		final SqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
+		final SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
 
 		assertThat(sqlGenerator.getFindAllInList()).isEqualToIgnoringCase( //
 				"SELECT " //
@@ -591,7 +597,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-324
 	void readOnlyPropertyIncludedIntoQuery_when_generateFindOneSql() {
 
-		final SqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
+		final SimpleSqlGenerator sqlGenerator = createSqlGenerator(EntityWithReadOnlyProperty.class);
 
 		assertThat(sqlGenerator.getFindOne()).isEqualToIgnoringCase( //
 				"SELECT " //
@@ -655,7 +661,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-340
 	void joinForSimpleReference() {
 
-		SqlGenerator.Join join = generateJoin("ref", DummyEntity.class);
+		SimpleSqlGenerator.Join join = generateJoin("ref", DummyEntity.class);
 
 		assertSoftly(softly -> {
 
@@ -670,7 +676,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-340
 	void noJoinForCollectionReference() {
 
-		SqlGenerator.Join join = generateJoin("elements", DummyEntity.class);
+		SimpleSqlGenerator.Join join = generateJoin("elements", DummyEntity.class);
 
 		assertThat(join).isNull();
 
@@ -679,7 +685,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-340
 	void noJoinForMappedReference() {
 
-		SqlGenerator.Join join = generateJoin("mappedElements", DummyEntity.class);
+		SimpleSqlGenerator.Join join = generateJoin("mappedElements", DummyEntity.class);
 
 		assertThat(join).isNull();
 	}
@@ -687,7 +693,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-340
 	void joinForSecondLevelReference() {
 
-		SqlGenerator.Join join = generateJoin("ref.further", DummyEntity.class);
+		SimpleSqlGenerator.Join join = generateJoin("ref.further", DummyEntity.class);
 
 		assertSoftly(softly -> {
 
@@ -703,7 +709,7 @@ class SqlGeneratorUnitTests {
 	@Test // DATAJDBC-340
 	void joinForOneToOneWithoutId() {
 
-		SqlGenerator.Join join = generateJoin("child", ParentOfNoIdChild.class);
+		SimpleSqlGenerator.Join join = generateJoin("child", ParentOfNoIdChild.class);
 		Table joinTable = join.getJoinTable();
 
 		assertSoftly(softly -> {
@@ -721,7 +727,7 @@ class SqlGeneratorUnitTests {
 	}
 
 	@Nullable
-	private SqlGenerator.Join generateJoin(String path, Class<?> type) {
+	private SimpleSqlGenerator.Join generateJoin(String path, Class<?> type) {
 		return createSqlGenerator(type, AnsiDialect.INSTANCE)
 				.getJoin(new PersistentPropertyPathExtension(context, PropertyPathTestingUtils.toPath(path, type, context)));
 	}

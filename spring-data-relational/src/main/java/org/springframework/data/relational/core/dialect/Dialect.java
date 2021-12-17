@@ -116,9 +116,8 @@ public interface Dialect {
 	}
 
 	/**
-	 * @return an appropriate {@link InsertRenderContext} for that specific dialect.
-	 *         for most of the Dialects the default implementation will be valid, but, for
-	 *         example, in case of {@link SqlServerDialect} it is not.
+	 * @return an appropriate {@link InsertRenderContext} for that specific dialect. for most of the Dialects the default
+	 *         implementation will be valid, but, for example, in case of {@link SqlServerDialect} it is not.
 	 * @since 2.4
 	 */
 	default InsertRenderContext getInsertRenderContext() {
@@ -143,5 +142,9 @@ public interface Dialect {
 	 */
 	default SimpleFunction getExistsFunction(){
 		return Functions.count(SQL.literalOf(1));
+	}
+
+	default boolean supportsSingleQueryLoad() {
+		return false;
 	}
 }

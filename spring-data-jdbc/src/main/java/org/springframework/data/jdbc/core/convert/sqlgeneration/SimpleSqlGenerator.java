@@ -99,7 +99,7 @@ class SqlGenerator {
 	 * @param dialect must not be {@literal null}.
 	 */
 	SqlGenerator(RelationalMappingContext mappingContext, JdbcConverter converter, RelationalPersistentEntity<?> entity,
-			Dialect dialect) {
+				 Dialect dialect) {
 
 		this.mappingContext = mappingContext;
 		this.entity = entity;
@@ -121,7 +121,7 @@ class SqlGenerator {
 	 * @return the IN condition
 	 */
 	private Condition getSubselectCondition(PersistentPropertyPathExtension path,
-			Function<Column, Condition> rootCondition, Column filterColumn) {
+											Function<Column, Condition> rootCondition, Column filterColumn) {
 
 		PersistentPropertyPathExtension parentPath = path.getParentPath();
 
@@ -484,7 +484,7 @@ class SqlGenerator {
 	}
 
 	private SelectBuilder.SelectOrdered selectBuilder(Collection<SqlIdentifier> keyColumns, Sort sort,
-			Pageable pageable) {
+													  Pageable pageable) {
 
 		SelectBuilder.SelectOrdered sortable = this.selectBuilder(keyColumns);
 		sortable = applyPagination(pageable, sortable);
@@ -683,7 +683,7 @@ class SqlGenerator {
 	}
 
 	private String createDeleteByPathAndCriteria(PersistentPropertyPathExtension path,
-			Function<Column, Condition> rootCondition) {
+												 Function<Column, Condition> rootCondition) {
 
 		Table table = Table.create(path.getTableName());
 
@@ -912,7 +912,7 @@ class SqlGenerator {
 	}
 
 	private SelectBuilder.SelectOrdered applyQueryOnSelect(Query query, MapSqlParameterSource parameterSource,
-			SelectBuilder.SelectWhere selectBuilder) {
+														   SelectBuilder.SelectWhere selectBuilder) {
 
 		Table table = Table.create(this.entity.getTableName());
 
@@ -939,7 +939,7 @@ class SqlGenerator {
 	}
 
 	SelectBuilder.SelectOrdered applyCriteria(@Nullable CriteriaDefinition criteria,
-			SelectBuilder.SelectWhere whereBuilder, MapSqlParameterSource parameterSource, Table table) {
+											  SelectBuilder.SelectWhere whereBuilder, MapSqlParameterSource parameterSource, Table table) {
 
 		return criteria != null //
 				? whereBuilder.where(queryMapper.getMappedObject(parameterSource, criteria, table, entity)) //
