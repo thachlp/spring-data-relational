@@ -15,11 +15,10 @@
  */
 package org.springframework.data.jdbc.core.convert;
 
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
 import static org.mockito.Mockito.*;
-
-import lombok.Data;
 
 import java.sql.Array;
 import java.sql.JDBCType;
@@ -38,11 +37,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import lombok.Value;
 import org.assertj.core.api.SoftAssertions;
 import org.h2.tools.SimpleResultSet;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
@@ -57,6 +56,9 @@ import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import lombok.Data;
+import lombok.Value;
 
 /**
  * Unit tests for {@link BasicJdbcConverter}.
@@ -166,7 +168,7 @@ public class BasicJdbcConverterUnitTests {
 		resultSet.addRow(1L);
 		assertThat(resultSet.next()).isTrue();
 
-		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 1);
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 0);
 
 		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
 		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
@@ -188,7 +190,7 @@ public class BasicJdbcConverterUnitTests {
 		resultSet.addRow(1L);
 		assertThat(resultSet.next()).isTrue();
 
-		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 1);
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 0);
 
 		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
 		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
@@ -209,7 +211,7 @@ public class BasicJdbcConverterUnitTests {
 		resultSet.addRow(1L);
 		assertThat(resultSet.next()).isTrue();
 
-		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 1);
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 0);
 
 		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
 		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
@@ -221,6 +223,67 @@ public class BasicJdbcConverterUnitTests {
 				rowMapperCaptor.capture());
 		SqlParameterSource sqlParameterSource = sqlParameterSourceCaptor.getValue();
 		assertThat(sqlParameterSource.getValue("entity_with_collectibles")).isEqualTo(1L);
+	}
+
+	@Test
+	void readsEntityCollectionsNestedUnderListElement() throws SQLException {
+		SimpleResultSet entityResultSet = new SimpleResultSet();
+		entityResultSet.addColumn("ID", JDBCType.BIGINT.getVendorTypeNumber(), String.valueOf(Long.MAX_VALUE).length(), 0);
+		entityResultSet.addRow(1L);
+		assertThat(entityResultSet.next()).isTrue();
+
+		when(namedParameterJdbcOperations.query(ArgumentMatchers.startsWith("SELECT \"ROOT_LIST_COLLECTIBLE\""),
+				any(SqlParameterSource.class),
+				any(RowMapper.class))).thenReturn(singletonList(new RootListCollectible()));
+
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithNestedCollectibles.class), entityResultSet, 0);
+
+		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
+		verify(namedParameterJdbcOperations).query(
+				eq("SELECT \"ROOT_LIST_COLLECTIBLE\".\"ID\" AS \"ID\", \"ROOT_LIST_COLLECTIBLE\".\"ENTITY_WITH_NESTED_COLLECTIBLES_KEY\" AS \"ENTITY_WITH_NESTED_COLLECTIBLES_KEY\" " +
+						"FROM \"ROOT_LIST_COLLECTIBLE\" " +
+						"WHERE \"ROOT_LIST_COLLECTIBLE\".\"ENTITY_WITH_NESTED_COLLECTIBLES\" = :entity_with_nested_collectibles " +
+						"ORDER BY \"ENTITY_WITH_NESTED_COLLECTIBLES_KEY\""),
+				any(SqlParameterSource.class),
+				rowMapperCaptor.capture());
+		RowMapper<?> rowMapper = rowMapperCaptor.getValue();
+		SimpleResultSet rootListCollectibleResultSet = new SimpleResultSet();
+		rootListCollectibleResultSet.addColumn("ID", JDBCType.BIGINT.getVendorTypeNumber(), String.valueOf(Long.MAX_VALUE).length(), 0);
+		rootListCollectibleResultSet.addColumn("ENTITY_WITH_NESTED_COLLECTIBLES_KEY", JDBCType.INTEGER.getVendorTypeNumber(), String.valueOf(Integer.MAX_VALUE).length(), 0);
+		rootListCollectibleResultSet.addRow(123L, 0);
+		assertThat(rootListCollectibleResultSet.next()).isTrue();
+		rowMapper.mapRow(rootListCollectibleResultSet, 0);
+		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
+
+//		An id field on RootListCollectible is required in order to allow this test to be complete since the below
+//		query criteria and sql parameter against NestedCollectible require a column on RootListCollectible to match with
+		verify(namedParameterJdbcOperations).query(
+				eq("SELECT \"NESTED_COLLECTIBLE\".\"VALUE\" AS \"VALUE\", \"NESTED_COLLECTIBLE\".\"ROOT_LIST_COLLECTIBLE_KEY\" AS \"ROOT_LIST_COLLECTIBLE_KEY\" " +
+						"FROM \"NESTED_COLLECTIBLE\" " +
+						"WHERE \"NESTED_COLLECTIBLE\".\"ROOT_LIST_COLLECTIBLE\" = :root_list_collectible " +
+						"ORDER BY \"ROOT_LIST_COLLECTIBLE_KEY\""),
+				sqlParameterSourceCaptor.capture(),
+				any(RowMapper.class));
+		SqlParameterSource sqlParameterSource = sqlParameterSourceCaptor.getValue();
+		assertThat(sqlParameterSource.getValue("root_list_collectible")).isEqualTo(123L);
+	}
+
+	static class EntityWithNestedCollectibles {
+		@Id Long id;
+
+		List<RootListCollectible> rootListCollectibles;
+	}
+
+	static class RootListCollectible {
+//		@Id // Adding this causes test to pass, but should not be necessary
+		Long id;
+
+		List<NestedCollectible> nestedCollectibles;
+	}
+
+	@Value
+	static class NestedCollectible {
+		Integer value;
 	}
 
 	static class EntityWithCollectibles {

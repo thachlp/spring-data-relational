@@ -22,10 +22,10 @@ import org.springframework.data.jdbc.testing.TestConfiguration;
 import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.Data;
 import lombok.Value;
-import org.springframework.transaction.annotation.Transactional;
 
 // TODO: Should these be moved into  JdbcRepositoryWithCollectionsIntegrationTests?
 @ExtendWith(SpringExtension.class)
@@ -146,7 +146,8 @@ public class JdbcRepositoryMappedCollectionIntegrationTests {
 	}
 
 	static class RootListCollectible {
-//		@Id Long id; // Adding this causes test to pass, but should not be necessary
+//		@Id // Adding this causes test to pass, but should not be necessary
+		Long id;
 
 		@MappedCollection(idColumn = "ROOT_COLLECTIBLE_ID", keyColumn = "INDEX")
 		List<NestedCollectible> nestedCollectibles;
