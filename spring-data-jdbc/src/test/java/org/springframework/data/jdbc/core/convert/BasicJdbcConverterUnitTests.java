@@ -22,6 +22,8 @@ import static org.mockito.Mockito.*;
 import lombok.Data;
 
 import java.sql.Array;
+import java.sql.JDBCType;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,19 +34,29 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import lombok.Value;
 import org.assertj.core.api.SoftAssertions;
+import org.h2.tools.SimpleResultSet;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.core.mapping.JdbcValue;
 import org.springframework.data.jdbc.support.JdbcUtil;
+import org.springframework.data.mapping.PersistentPropertyPath;
+import org.springframework.data.relational.core.dialect.H2Dialect;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
  * Unit tests for {@link BasicJdbcConverter}.
@@ -55,14 +67,19 @@ public class BasicJdbcConverterUnitTests {
 
 	JdbcMappingContext context = new JdbcMappingContext();
 	StubbedJdbcTypeFactory typeFactory = new StubbedJdbcTypeFactory();
+	NamedParameterJdbcOperations namedParameterJdbcOperations = mock(NamedParameterJdbcOperations.class);
 	BasicJdbcConverter converter = new BasicJdbcConverter( //
 			context, //
-			(identifier, path) -> {
-				throw new UnsupportedOperationException();
-			}, //
+			this::findAllByPath, //
 			new JdbcCustomConversions(), //
 			typeFactory, IdentifierProcessing.ANSI //
 	);
+
+	private Iterable<Object> findAllByPath(Identifier identifier, PersistentPropertyPath<? extends RelationalPersistentProperty> path) {
+		SqlGeneratorSource sqlGeneratorSource = new SqlGeneratorSource(context, converter, H2Dialect.INSTANCE);
+		return new DefaultDataAccessStrategy(sqlGeneratorSource, context, converter, namedParameterJdbcOperations)
+				.findAllByPath(identifier, path);
+	}
 
 	@Test // DATAJDBC-104, DATAJDBC-1384
 	public void testTargetTypesForPropertyType() {
@@ -140,6 +157,95 @@ public class BasicJdbcConverterUnitTests {
 
 		assertThat(converted.getValue()).isInstanceOf(Array.class);
 		assertThat(typeFactory.arraySource).containsExactly(1, 2, 3, 4, 5);
+	}
+
+	@Test
+	void readsEntityCollectionsAsList_orderingElementsByKey() throws SQLException {
+		SimpleResultSet resultSet = new SimpleResultSet();
+		resultSet.addColumn("ID", JDBCType.BIGINT.getVendorTypeNumber(), String.valueOf(Long.MAX_VALUE).length(), 0);
+		resultSet.addRow(1L);
+		assertThat(resultSet.next()).isTrue();
+
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 1);
+
+		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
+		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
+		verify(namedParameterJdbcOperations).query(
+				eq("SELECT \"LIST_COLLECTIBLE\".\"NAME\" AS \"NAME\", \"LIST_COLLECTIBLE\".\"ENTITY_WITH_COLLECTIBLES_KEY\" AS \"ENTITY_WITH_COLLECTIBLES_KEY\" " +
+						"FROM \"LIST_COLLECTIBLE\" " +
+						"WHERE \"LIST_COLLECTIBLE\".\"ENTITY_WITH_COLLECTIBLES\" = :entity_with_collectibles " +
+						"ORDER BY \"ENTITY_WITH_COLLECTIBLES_KEY\""),
+				sqlParameterSourceCaptor.capture(),
+				rowMapperCaptor.capture());
+		SqlParameterSource sqlParameterSource = sqlParameterSourceCaptor.getValue();
+		assertThat(sqlParameterSource.getValue("entity_with_collectibles")).isEqualTo(1L);
+	}
+
+	@Test
+	void readsEntityCollectionsAsMap() throws SQLException {
+		SimpleResultSet resultSet = new SimpleResultSet();
+		resultSet.addColumn("ID", JDBCType.BIGINT.getVendorTypeNumber(), String.valueOf(Long.MAX_VALUE).length(), 0);
+		resultSet.addRow(1L);
+		assertThat(resultSet.next()).isTrue();
+
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 1);
+
+		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
+		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
+		verify(namedParameterJdbcOperations).query(
+				eq("SELECT \"MAP_COLLECTIBLE\".\"VALUE\" AS \"VALUE\", \"MAP_COLLECTIBLE\".\"ENTITY_WITH_COLLECTIBLES_KEY\" AS \"ENTITY_WITH_COLLECTIBLES_KEY\" " +
+						"FROM \"MAP_COLLECTIBLE\" " +
+						"WHERE \"MAP_COLLECTIBLE\".\"ENTITY_WITH_COLLECTIBLES\" = :entity_with_collectibles"),
+				sqlParameterSourceCaptor.capture(),
+				rowMapperCaptor.capture());
+		SqlParameterSource sqlParameterSource = sqlParameterSourceCaptor.getValue();
+		assertThat(sqlParameterSource.getValue("entity_with_collectibles")).isEqualTo(1L);
+	}
+
+	@Test
+	void readsEntityCollectionsAsSet() throws SQLException {
+		SimpleResultSet resultSet = new SimpleResultSet();
+		resultSet.addColumn("ID", JDBCType.BIGINT.getVendorTypeNumber(), String.valueOf(Long.MAX_VALUE).length(), 0);
+		resultSet.addRow(1L);
+		assertThat(resultSet.next()).isTrue();
+
+		converter.mapRow(context.getRequiredPersistentEntity(EntityWithCollectibles.class), resultSet, 1);
+
+		ArgumentCaptor<SqlParameterSource> sqlParameterSourceCaptor = ArgumentCaptor.forClass(SqlParameterSource.class);
+		ArgumentCaptor<RowMapper<?>> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
+		verify(namedParameterJdbcOperations).query(
+				eq("SELECT \"SET_COLLECTIBLE\".\"VALUE\" AS \"VALUE\" " +
+						"FROM \"SET_COLLECTIBLE\" " +
+						"WHERE \"SET_COLLECTIBLE\".\"ENTITY_WITH_COLLECTIBLES\" = :entity_with_collectibles"),
+				sqlParameterSourceCaptor.capture(),
+				rowMapperCaptor.capture());
+		SqlParameterSource sqlParameterSource = sqlParameterSourceCaptor.getValue();
+		assertThat(sqlParameterSource.getValue("entity_with_collectibles")).isEqualTo(1L);
+	}
+
+	static class EntityWithCollectibles {
+		@Id Long id;
+
+		List<ListCollectible> listCollectibles;
+
+		Map<String, MapCollectible> mapCollectibles;
+
+		Set<SetCollectible> setCollectibles;
+
+		@Value
+		static class ListCollectible {
+			String name;
+		}
+
+		@Value
+		static class MapCollectible {
+			Integer value;
+		}
+
+		@Value
+		static class SetCollectible {
+			Integer value;
+		}
 	}
 
 	private void checkConversionToTimestampAndBack(SoftAssertions softly, RelationalPersistentEntity<?> persistentEntity,
