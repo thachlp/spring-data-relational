@@ -42,7 +42,7 @@ import org.springframework.util.Assert;
  * A SQL generator generating single queries to load complete aggregates.
  * 
  * @author Jens Schauder
- * @since 2.4
+ * @since 3.0
  */
 public class SingleQuerySqlGenerator extends WritingSqlGenerator {
 
