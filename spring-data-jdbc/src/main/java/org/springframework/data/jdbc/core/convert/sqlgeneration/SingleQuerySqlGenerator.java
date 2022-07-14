@@ -32,8 +32,10 @@ import org.springframework.data.relational.core.dialect.RenderContextFactory;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
+import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.sql.*;
 import org.springframework.data.relational.core.sql.render.SqlRenderer;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.util.Assert;
 
 /**
@@ -152,6 +154,26 @@ public class SingleQuerySqlGenerator extends WritingSqlGenerator {
 
 	@Override
 	public String getCount() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String selectByQuery(Query query, MapSqlParameterSource parameterSource) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String selectByQuery(Query query, MapSqlParameterSource parameterSource, Pageable pageable) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String existsByQuery(Query query, MapSqlParameterSource parameterSource) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String countByQuery(Query query, MapSqlParameterSource parameterSource) {
 		throw new UnsupportedOperationException();
 	}
 

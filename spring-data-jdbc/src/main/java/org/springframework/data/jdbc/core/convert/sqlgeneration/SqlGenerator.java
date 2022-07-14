@@ -20,8 +20,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jdbc.core.convert.Identifier;
 import org.springframework.data.mapping.PersistentPropertyPath;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
+import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.sql.LockMode;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.lang.Nullable;
 
 import java.util.Map;
@@ -170,4 +172,12 @@ public interface SqlGenerator {
 	 * @return the statement as a {@link String}. Guaranteed to be not {@literal null}.
 	 */
 	String getCount();
+
+	String selectByQuery(Query query, MapSqlParameterSource parameterSource);
+
+	String selectByQuery(Query query, MapSqlParameterSource parameterSource, Pageable pageable);
+
+	String existsByQuery(Query query, MapSqlParameterSource parameterSource);
+
+	String countByQuery(Query query, MapSqlParameterSource parameterSource);
 }
