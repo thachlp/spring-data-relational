@@ -21,15 +21,34 @@ import org.junit.jupiter.api.Test;
 
 public class AnalyticStructureBuilderTests {
 
+	/**
+	 * a simple table should result in a simple select.
+	 */
 	@Test
 	void simpleTableWithColumns() {
 
-		AnalyticStructureBuilder<String, Integer> structure = new AnalyticStructureBuilder<>().addTable("table",
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>().addTable("table",
 				td -> td.withId(0).withColumns(1, 2));
 
-		assertThat(structure.getColummns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
+		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
 				.containsExactlyInAnyOrder(0, 1, 2);
-		assertThat(structure.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
+		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
+				.isEqualTo(0);
+	}
+
+
+	@Test
+	void tableWithSingleChild() {
+
+		AnalyticStructureBuilder<String, Integer> builder =
+				new AnalyticStructureBuilder<String, Integer>()
+						.addTable("parent", td -> td.withId(0).withColumns(1, 2))
+						.addChildTo("parent", "child", td -> td.withId(10).withColumns(11, 12))
+				;
+
+		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
+				.containsExactlyInAnyOrder(0, 1, 2, 10, 11, 12);
+		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
 				.isEqualTo(0);
 	}
 }
