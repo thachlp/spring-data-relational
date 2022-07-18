@@ -68,20 +68,20 @@ public class AnalyticStructureBuilderTests {
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
-		Set<AnalyticStructureBuilder<String, Integer>.Select> froms = collectFroms(select);
-		assertThat(froms).hasSize(3);
+		Set<AnalyticStructureBuilder<String, Integer>.TableDefinition> froms = collectFroms(select);
+		assertThat(froms).extracting(td -> td.getTable()).containsExactlyInAnyOrder("parent", "child1", "child2");
 
 	}
 
-	private Set<AnalyticStructureBuilder<String, Integer>.Select> collectFroms(
+	private Set<AnalyticStructureBuilder<String, Integer>.TableDefinition> collectFroms(
 			AnalyticStructureBuilder<String, Integer>.Select select) {
 
-		Set<AnalyticStructureBuilder<String, Integer>.Select> froms = new HashSet<>();
+		Set<AnalyticStructureBuilder<String, Integer>.TableDefinition> froms = new HashSet<>();
 		select.getFroms().forEach(s -> {
 			if (s instanceof AnalyticStructureBuilder.AnalyticJoin) {
-				froms.addAll(s.getFroms());
+				froms.addAll(collectFroms(s));
 			} else {
-				froms.add(s);
+				froms.add((AnalyticStructureBuilder.TableDefinition) s);
 			}
 		});
 

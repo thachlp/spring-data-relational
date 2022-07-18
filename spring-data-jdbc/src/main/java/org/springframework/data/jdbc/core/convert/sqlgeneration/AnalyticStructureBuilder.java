@@ -114,7 +114,11 @@ class AnalyticStructureBuilder<T, C> {
 
 		@Override
 		List<Select> getFroms() {
-			return Collections.singletonList(this);
+			return Collections.emptyList();
+		}
+
+		T getTable() {
+			return table;
 		}
 	}
 
