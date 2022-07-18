@@ -17,7 +17,9 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -52,8 +54,11 @@ public class AnalyticStructureBuilderTests {
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
-		assertThat(select.getFroms()).extracting(f -> f.getClass()).containsExactlyInAnyOrder(
-				AnalyticStructureBuilder.TableDefinition.class, AnalyticStructureBuilder.AnalyticView.class);
+
+		assertThat(stringify(select)).containsExactlyInAnyOrder(
+				"AJ -> TD(parent)",
+				"AJ -> AV -> TD(child)"
+		);
 	}
 
 	@Test
@@ -69,11 +74,12 @@ public class AnalyticStructureBuilderTests {
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
-		assertThat(select.getFroms()).extracting(f -> f.getClass()).containsExactlyInAnyOrder(
-				AnalyticStructureBuilder.AnalyticJoin.class, AnalyticStructureBuilder.AnalyticView.class);
 
-		Set<AnalyticStructureBuilder<String, Integer>.TableDefinition> froms = collectFroms(select);
-		assertThat(froms).extracting(td -> td.getTable()).containsExactlyInAnyOrder("parent", "child1", "child2");
+		assertThat(stringify(select)).containsExactlyInAnyOrder(
+				"AJ -> AJ -> TD(parent)",
+				"AJ -> AJ -> AV -> TD(child1)",
+				"AJ -> AV -> TD(child2)"
+		);
 
 	}
 
@@ -93,5 +99,17 @@ public class AnalyticStructureBuilderTests {
 		});
 
 		return froms;
+	}
+
+	private List<String> stringify(AnalyticStructureBuilder<String, Integer>.Select select) {
+
+		if (select instanceof AnalyticStructureBuilder.TableDefinition) {
+			return Collections
+					.singletonList("TD(%s)".formatted(((AnalyticStructureBuilder.TableDefinition) select).getTable()));
+		} else {
+
+			String prefix = select instanceof AnalyticStructureBuilder.AnalyticView ? "AV" : "AJ";
+			return select.getFroms().stream().flatMap(f -> stringify(f).stream()).map(s -> prefix + " -> " + s).toList();
+		}
 	}
 }
