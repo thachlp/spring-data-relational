@@ -22,33 +22,43 @@ import org.junit.jupiter.api.Test;
 public class AnalyticStructureBuilderTests {
 
 	/**
-	 * a simple table should result in a simple select.
+	 * A simple table should result in a simple select. Columns are represented by
+	 * {@link org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticStructureBuilder.BaseColumn} since they are
+	 * directly referenced.
 	 */
 	@Test
 	void simpleTableWithColumns() {
 
-		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>().addTable("table",
-				td -> td.withId(0).withColumns(1, 2));
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("table", td -> td.withId(0).withColumns(1, 2));
 
 		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
-				.containsExactlyInAnyOrder(0, 1, 2);
-		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
-				.isEqualTo(0);
+				.containsExactlyInAnyOrder(1, 2);
+		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column).isEqualTo(0);
 	}
-
 
 	@Test
 	void tableWithSingleChild() {
 
-		AnalyticStructureBuilder<String, Integer> builder =
-				new AnalyticStructureBuilder<String, Integer>()
-						.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-						.addChildTo("parent", "child", td -> td.withId(10).withColumns(11, 12))
-				;
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
+				.addChildTo("parent", "child", td -> td.withId(10).withColumns(11, 12));
 
-		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
-				.containsExactlyInAnyOrder(0, 1, 2, 10, 11, 12);
-		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
-				.isEqualTo(0);
+		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+				.containsExactlyInAnyOrder(1, 2, 11, 12);
+		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn()).isEqualTo(0);
+	}
+
+	@Test
+	void tableWithMultipleChildren() {
+
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
+				.addChildTo("parent", "child1", td -> td.withId(10).withColumns(11, 12))
+				.addChildTo("parent", "child2", td -> td.withId(20).withColumns(21, 22));
+
+		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
+		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn()).isEqualTo(0);
 	}
 }

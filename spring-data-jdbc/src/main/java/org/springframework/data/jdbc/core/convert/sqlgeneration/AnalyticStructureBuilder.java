@@ -31,12 +31,16 @@ class AnalyticStructureBuilder<T, C> {
 	private Select table;
 
 	AnalyticStructureBuilder<T, C> addTable(T table, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
+
 		this.table = createTable(table, tableDefinitionConfiguration);
+
 		return this;
 	}
 
 	AnalyticStructureBuilder<T, C> addChildTo(T parent, T child, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration){
+
 		this.table = new AnalyticJoin(table, createTable(child, tableDefinitionConfiguration));
+
 		return this;
 	}
 
@@ -54,14 +58,14 @@ class AnalyticStructureBuilder<T, C> {
 	}
 
 
-	interface Select{
+	abstract class Select{
 
-		List<? extends AnalyticColumn> getColumns();
+		abstract List<? extends AnalyticColumn> getColumns();
 
-		AnalyticColumn getId();
+		abstract AnalyticColumn getId();
 	}
 
-	class TableDefinition implements Select{
+	class TableDefinition extends Select{
 
 		private final T table;
 		private final AnalyticColumn id;
@@ -71,7 +75,7 @@ class AnalyticStructureBuilder<T, C> {
 
 			this.table = table;
 			this.id = id;
-			this.columns = columns;
+			this.columns = Collections.unmodifiableList(columns);
 		}
 
 		TableDefinition(T table) {
@@ -90,9 +94,7 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		public List<? extends AnalyticColumn> getColumns() {
 
-			ArrayList<AnalyticColumn> result = new ArrayList<>(columns);
-			result.add(id);
-			return result;
+			return columns;
 		}
 
 		@Override
@@ -101,16 +103,39 @@ class AnalyticStructureBuilder<T, C> {
 		}
 	}
 
-	interface AnalyticColumn {}
+	abstract class AnalyticColumn {
+		abstract C getColumn();
+	}
 
-	class BaseColumn implements AnalyticColumn{
+	class BaseColumn extends AnalyticColumn{
+
 		final C column;
+
 		BaseColumn(C column) {
 			this.column = column;
 		}
+
+		@Override
+		C getColumn() {
+			return column;
+		}
 	}
 
-	private class AnalyticJoin implements Select {
+	class DerivedColumn extends AnalyticColumn{
+
+		final AnalyticColumn column;
+
+		DerivedColumn(AnalyticColumn column) {
+			this.column = column;
+		}
+
+		@Override
+		C getColumn() {
+			return column.getColumn();
+		}
+	}
+
+	private class AnalyticJoin extends Select {
 
 		private final Select parent;
 		private final Select child;
@@ -124,15 +149,16 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		public List<? extends AnalyticColumn> getColumns() {
 
-			List<AnalyticColumn> result = new ArrayList<>(parent.getColumns());
-			result.addAll(child.getColumns());
+			List<AnalyticColumn> result = new ArrayList<>();
+			parent.getColumns().forEach(c -> result.add(new DerivedColumn(c)));
+			child.getColumns().forEach(c -> result.add(new DerivedColumn(c)));
 
 			return result;
 		}
 
 		@Override
 		public AnalyticColumn getId() {
-			return parent.getId();
+			return new DerivedColumn(parent.getId());
 		}
 	}
 }
