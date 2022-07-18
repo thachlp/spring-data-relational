@@ -20,7 +20,9 @@ import org.springframework.lang.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.*;
@@ -32,6 +34,7 @@ class AnalyticStructureBuilder<T, C> {
 
 	private Select table;
 	private Select aggregateRootTable;
+	private Map<Object, Object> parentLookUp = new HashMap<>();
 
 	AnalyticStructureBuilder<T, C> addTable(T table, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
@@ -89,10 +92,14 @@ class AnalyticStructureBuilder<T, C> {
 			this.table = table;
 			this.id = id;
 			this.columns = Collections.unmodifiableList(columns);
+
+			parentLookUp.put(table, this);
 		}
 
 		TableDefinition(T table) {
+
 			this(table, null, Collections.emptyList());
+
 		}
 
 		TableDefinition withId(C id) {
@@ -166,9 +173,14 @@ class AnalyticStructureBuilder<T, C> {
 
 			this.parent = wrapInView(parent);
 			this.child = wrapInView(child);
+
+			parentLookUp.put(parent, this);
+			parentLookUp.put(child, this);
+
 		}
 
 		 private Select wrapInView(Select parent) {
+
 			 if (!(parent instanceof TableDefinition) || parent == aggregateRootTable) {
 				 return parent;
 			 } else {
@@ -202,7 +214,11 @@ class AnalyticStructureBuilder<T, C> {
 		private final TableDefinition table;
 
 		AnalyticView(TableDefinition table) {
+
 			this.table = table;
+
+			parentLookUp.put(table, this);
+
 		}
 
 		@Override
