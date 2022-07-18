@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.*;
+
 /**
  * Builds the structure of an analytic query. The structure contains arbitrary objects for tables and columns
  */
@@ -49,7 +51,7 @@ class AnalyticStructureBuilder<T, C> {
 		return table.getColumns();
 	}
 
-	AnalyticColumn getIdColumn() {
+	AnalyticColumn getId() {
 		return table.getId();
 	}
 
@@ -57,12 +59,20 @@ class AnalyticStructureBuilder<T, C> {
 		return tableDefinitionConfiguration.apply( new TableDefinition(table));
 	}
 
+	List<Select> getFroms() {
+		return table.getFroms();
+	}
+
+	Select getSelect() {
+		return table;
+	}
+
 
 	abstract class Select{
 
 		abstract List<? extends AnalyticColumn> getColumns();
-
 		abstract AnalyticColumn getId();
+		abstract List<Select> getFroms();
 	}
 
 	class TableDefinition extends Select{
@@ -101,6 +111,11 @@ class AnalyticStructureBuilder<T, C> {
 		public AnalyticColumn getId() {
 			return id;
 		}
+
+		@Override
+		List<Select> getFroms() {
+			return Collections.singletonList(this);
+		}
 	}
 
 	abstract class AnalyticColumn {
@@ -135,7 +150,7 @@ class AnalyticStructureBuilder<T, C> {
 		}
 	}
 
-	private class AnalyticJoin extends Select {
+	 class AnalyticJoin extends Select {
 
 		private final Select parent;
 		private final Select child;
@@ -159,6 +174,11 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		public AnalyticColumn getId() {
 			return new DerivedColumn(parent.getId());
+		}
+
+		@Override
+		List<Select> getFroms() {
+			return asList(parent, child);
 		}
 	}
 }

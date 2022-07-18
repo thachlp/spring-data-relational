@@ -17,6 +17,9 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
 
 public class AnalyticStructureBuilderTests {
@@ -34,7 +37,7 @@ public class AnalyticStructureBuilderTests {
 
 		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
 				.containsExactlyInAnyOrder(1, 2);
-		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column).isEqualTo(0);
+		assertThat(builder.getId()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column).isEqualTo(0);
 	}
 
 	@Test
@@ -44,9 +47,12 @@ public class AnalyticStructureBuilderTests {
 				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
 				.addChildTo("parent", "child", td -> td.withId(10).withColumns(11, 12));
 
-		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+		AnalyticStructureBuilder.Select select = builder.getSelect();
+
+		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12);
-		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn()).isEqualTo(0);
+		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		assertThat(select.getFroms()).hasSize(2);
 	}
 
 	@Test
@@ -57,8 +63,28 @@ public class AnalyticStructureBuilderTests {
 				.addChildTo("parent", "child1", td -> td.withId(10).withColumns(11, 12))
 				.addChildTo("parent", "child2", td -> td.withId(20).withColumns(21, 22));
 
-		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+		AnalyticStructureBuilder.Select select = builder.getSelect();
+
+		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
-		assertThat(builder.getIdColumn()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn()).isEqualTo(0);
+		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		Set<AnalyticStructureBuilder<String, Integer>.Select> froms = collectFroms(select);
+		assertThat(froms).hasSize(3);
+
+	}
+
+	private Set<AnalyticStructureBuilder<String, Integer>.Select> collectFroms(
+			AnalyticStructureBuilder<String, Integer>.Select select) {
+
+		Set<AnalyticStructureBuilder<String, Integer>.Select> froms = new HashSet<>();
+		select.getFroms().forEach(s -> {
+			if (s instanceof AnalyticStructureBuilder.AnalyticJoin) {
+				froms.addAll(s.getFroms());
+			} else {
+				froms.add(s);
+			}
+		});
+
+		return froms;
 	}
 }
