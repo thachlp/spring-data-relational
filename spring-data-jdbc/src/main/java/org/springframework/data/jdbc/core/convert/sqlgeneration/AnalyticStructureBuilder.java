@@ -31,10 +31,13 @@ import static java.util.Arrays.*;
 class AnalyticStructureBuilder<T, C> {
 
 	private Select table;
+	private Select aggregateRootTable;
 
 	AnalyticStructureBuilder<T, C> addTable(T table, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
 		this.table = createTable(table, tableDefinitionConfiguration);
+
+		this.aggregateRootTable = this.table;
 
 		return this;
 	}
@@ -161,11 +164,19 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticJoin(Select parent, Select child) {
 
-			this.parent = parent;
-			this.child = child;
+			this.parent = wrapInView(parent);
+			this.child = wrapInView(child);
 		}
 
-		@Override
+		 private Select wrapInView(Select parent) {
+			 if (!(parent instanceof TableDefinition) || parent == aggregateRootTable) {
+				 return parent;
+			 } else {
+				 return new AnalyticView((TableDefinition) parent);
+			 }
+		 }
+
+		 @Override
 		public List<? extends AnalyticColumn> getColumns() {
 
 			List<AnalyticColumn> result = new ArrayList<>();
@@ -183,6 +194,30 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		List<Select> getFroms() {
 			return asList(parent, child);
+		}
+	}
+
+	class AnalyticView extends Select {
+
+		private final TableDefinition table;
+
+		AnalyticView(TableDefinition table) {
+			this.table = table;
+		}
+
+		@Override
+		List<? extends AnalyticColumn> getColumns() {
+			return table.getColumns();
+		}
+
+		@Override
+		AnalyticColumn getId() {
+			return table.getId();
+		}
+
+		@Override
+		List<Select> getFroms() {
+			return Collections.singletonList(table);
 		}
 	}
 }

@@ -52,7 +52,8 @@ public class AnalyticStructureBuilderTests {
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
-		assertThat(select.getFroms()).hasSize(2);
+		assertThat(select.getFroms()).extracting(f -> f.getClass()).containsExactlyInAnyOrder(
+				AnalyticStructureBuilder.TableDefinition.class, AnalyticStructureBuilder.AnalyticView.class);
 	}
 
 	@Test
@@ -68,6 +69,9 @@ public class AnalyticStructureBuilderTests {
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
 				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		assertThat(select.getFroms()).extracting(f -> f.getClass()).containsExactlyInAnyOrder(
+				AnalyticStructureBuilder.AnalyticJoin.class, AnalyticStructureBuilder.AnalyticView.class);
+
 		Set<AnalyticStructureBuilder<String, Integer>.TableDefinition> froms = collectFroms(select);
 		assertThat(froms).extracting(td -> td.getTable()).containsExactlyInAnyOrder("parent", "child1", "child2");
 
@@ -80,6 +84,9 @@ public class AnalyticStructureBuilderTests {
 		select.getFroms().forEach(s -> {
 			if (s instanceof AnalyticStructureBuilder.AnalyticJoin) {
 				froms.addAll(collectFroms(s));
+			} else if (s instanceof AnalyticStructureBuilder.AnalyticView) {
+
+				froms.add((AnalyticStructureBuilder.TableDefinition) s.getFroms().get(0));
 			} else {
 				froms.add((AnalyticStructureBuilder.TableDefinition) s);
 			}
