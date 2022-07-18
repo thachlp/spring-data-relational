@@ -82,6 +82,27 @@ public class AnalyticStructureBuilderTests {
 		);
 
 	}
+	@Test
+	void tableWithChainOfChildren() {
+
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
+				.addChildTo("parent", "child1", td -> td.withId(10).withColumns(11, 12))
+				.addChildTo("child1", "child2", td -> td.withId(20).withColumns(21, 22));
+
+		AnalyticStructureBuilder.Select select = builder.getSelect();
+
+		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
+		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+
+		assertThat(stringify(select)).containsExactlyInAnyOrder(
+				"AJ  -> TD(parent)",
+				"AJ -> AJ -> TD(child1)",
+				"AJ -> AJ -> AV -> TD(child2)"
+		);
+
+	}
 
 	private Set<AnalyticStructureBuilder<String, Integer>.TableDefinition> collectFroms(
 			AnalyticStructureBuilder<String, Integer>.Select select) {
