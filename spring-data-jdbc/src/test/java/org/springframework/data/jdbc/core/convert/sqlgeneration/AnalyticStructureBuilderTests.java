@@ -97,7 +97,7 @@ public class AnalyticStructureBuilderTests {
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder(
-				"AJ  -> TD(parent)",
+				"AJ -> TD(parent)",
 				"AJ -> AJ -> TD(child1)",
 				"AJ -> AJ -> AV -> TD(child2)"
 		);

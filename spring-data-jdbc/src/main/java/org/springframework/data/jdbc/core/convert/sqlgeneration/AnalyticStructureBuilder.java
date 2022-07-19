@@ -15,7 +15,7 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import org.springframework.lang.Nullable;
+import static java.util.Arrays.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,63 +25,125 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Arrays.*;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
- * Builds the structure of an analytic query. The structure contains arbitrary objects for tables and columns
+ * Builds the structure of an analytic query. The structure contains arbitrary objects for tables and columns. There are
+ * two kinds of parent child relationship:
+ * <ol>
+ * <li>there is the relationship on aggregate level: the purchase order is the parent of the line item. This
+ * relationship is denoted by simply parent and child.</li>
+ * <li>there is the parent child relationship inside the analytic query structure, that gets build by this builder.
+ * Where a join combines two nodes. In this relationship the join is parent to the two nodes, where one node might
+ * represent the purchase order and the other the line item. This kind or relationship shall be prefixed by "node". The
+ * join {@literal nodeParent} is the {@literal nodeParent} of purchase order and line item.</li>
+ * </ol>
  */
 class AnalyticStructureBuilder<T, C> {
 
-	private Select table;
+	private Select nodeRoot;
 	private Select aggregateRootTable;
-	private Map<Object, Object> parentLookUp = new HashMap<>();
+	private Map<Object, Select> nodeParentLookUp = new HashMap<>();
 
-	AnalyticStructureBuilder<T, C> addTable(T table, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
+	AnalyticStructureBuilder<T, C> addTable(T table,
+			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
-		this.table = createTable(table, tableDefinitionConfiguration);
+		this.nodeRoot = createTable(table, tableDefinitionConfiguration);
 
-		this.aggregateRootTable = this.table;
+		this.aggregateRootTable = this.nodeRoot;
 
 		return this;
 	}
 
-	AnalyticStructureBuilder<T, C> addChildTo(T parent, T child, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration){
+	AnalyticStructureBuilder<T, C> addChildTo(T parent, T child,
+			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
-		this.table = new AnalyticJoin(table, createTable(child, tableDefinitionConfiguration));
+		Select nodeParent = findUltimateNodeParent(parent);
+
+		List<Select> nodeParentChain = collectNodeParents(nodeParent);
+
+		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration));
+
+		this.nodeRoot = replace(newNode, nodeParentChain);
 
 		return this;
+	}
+
+	private List<Select> collectNodeParents(Select node) {
+
+		List<Select> result = new ArrayList<>();
+		Select nodeParent = nodeParentLookUp.get(node);
+		while (nodeParent != null) {
+			result.add(nodeParent);
+			nodeParent = nodeParentLookUp.get(nodeParent);
+		}
+		return result;
+	}
+
+	private Select replace(Select newNode, List<Select> nodes) {
+
+		for (int i = nodes.size() - 1; i >= 0; i--) {
+			Select oldNode = nodes.get(i);
+
+			newNode = new AnalyticJoin((Select) oldNode.getParent(), newNode);
+		}
+
+		return newNode;
 	}
 
 	List<? extends AnalyticColumn> getColumns() {
-
-		return table.getColumns();
+		return nodeRoot.getColumns();
 	}
 
 	AnalyticColumn getId() {
-		return table.getId();
+		return nodeRoot.getId();
 	}
 
-	private TableDefinition createTable(T table, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
-		return tableDefinitionConfiguration.apply( new TableDefinition(table));
+	private Select findUltimateNodeParent(T parent) {
+
+		Select nodeParent = (Select) nodeParentLookUp.get(parent);
+
+		Assert.state(nodeParent != null, "There must be a node parent");
+		Assert.state(nodeParent.getParent().equals(parent), "The object in question must be the parent of the node parent");
+
+		return findUltimateNodeParent(nodeParent);
 	}
 
-	List<Select> getFroms() {
-		return table.getFroms();
+	private Select findUltimateNodeParent(Select node) {
+
+		Select nodeParent = (Select) nodeParentLookUp.get(node);
+
+		if (nodeParent == null) {
+			return node;
+		} else if (!nodeParent.getParent().equals(node)) {
+			return node;
+		} else {
+			return findUltimateNodeParent(nodeParent);
+		}
+	}
+
+	private TableDefinition createTable(T table,
+			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
+		return tableDefinitionConfiguration.apply(new TableDefinition(table));
 	}
 
 	Select getSelect() {
-		return table;
+		return nodeRoot;
 	}
 
-
-	abstract class Select{
+	abstract class Select {
 
 		abstract List<? extends AnalyticColumn> getColumns();
+
 		abstract AnalyticColumn getId();
+
 		abstract List<Select> getFroms();
+
+		abstract Object getParent();
 	}
 
-	class TableDefinition extends Select{
+	class TableDefinition extends Select {
 
 		private final T table;
 		private final AnalyticColumn id;
@@ -93,7 +155,7 @@ class AnalyticStructureBuilder<T, C> {
 			this.id = id;
 			this.columns = Collections.unmodifiableList(columns);
 
-			parentLookUp.put(table, this);
+			nodeParentLookUp.put(table, this);
 		}
 
 		TableDefinition(T table) {
@@ -127,6 +189,11 @@ class AnalyticStructureBuilder<T, C> {
 			return Collections.emptyList();
 		}
 
+		@Override
+		Object getParent() {
+			return table;
+		}
+
 		T getTable() {
 			return table;
 		}
@@ -136,7 +203,7 @@ class AnalyticStructureBuilder<T, C> {
 		abstract C getColumn();
 	}
 
-	class BaseColumn extends AnalyticColumn{
+	class BaseColumn extends AnalyticColumn {
 
 		final C column;
 
@@ -150,7 +217,7 @@ class AnalyticStructureBuilder<T, C> {
 		}
 	}
 
-	class DerivedColumn extends AnalyticColumn{
+	class DerivedColumn extends AnalyticColumn {
 
 		final AnalyticColumn column;
 
@@ -164,31 +231,36 @@ class AnalyticStructureBuilder<T, C> {
 		}
 	}
 
-	 class AnalyticJoin extends Select {
+	class AnalyticJoin extends Select {
 
 		private final Select parent;
 		private final Select child;
 
 		AnalyticJoin(Select parent, Select child) {
 
-			this.parent = wrapInView(parent);
-			this.child = wrapInView(child);
+			this.parent = wrapInView(parent, true);
+			this.child = wrapInView(child, false);
 
-			parentLookUp.put(parent, this);
-			parentLookUp.put(child, this);
+			nodeParentLookUp.put(parent, this);
+			nodeParentLookUp.put(child, this);
 
 		}
 
-		 private Select wrapInView(Select parent) {
+		private Select wrapInView(Select node, boolean isParent) {
 
-			 if (!(parent instanceof TableDefinition) || parent == aggregateRootTable) {
-				 return parent;
-			 } else {
-				 return new AnalyticView((TableDefinition) parent);
-			 }
-		 }
+			if (isParent) {
+				if (node instanceof AnalyticView) {
+					return (Select)node.getParent();
+				}
+			} else {
+				if (node instanceof TableDefinition td) {
+					return new AnalyticView(td);
+				}
+			}
+			return node;
+		}
 
-		 @Override
+		@Override
 		public List<? extends AnalyticColumn> getColumns() {
 
 			List<AnalyticColumn> result = new ArrayList<>();
@@ -207,6 +279,11 @@ class AnalyticStructureBuilder<T, C> {
 		List<Select> getFroms() {
 			return asList(parent, child);
 		}
+
+		@Override
+		Object getParent() {
+			return parent;
+		}
 	}
 
 	class AnalyticView extends Select {
@@ -217,7 +294,7 @@ class AnalyticStructureBuilder<T, C> {
 
 			this.table = table;
 
-			parentLookUp.put(table, this);
+			nodeParentLookUp.put(table, this);
 
 		}
 
@@ -234,6 +311,11 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		List<Select> getFroms() {
 			return Collections.singletonList(table);
+		}
+
+		@Override
+		Object getParent() {
+			return table;
 		}
 	}
 }
