@@ -238,24 +238,26 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticJoin(Select parent, Select child) {
 
-			this.parent = wrapInView(parent, true);
-			this.child = wrapInView(child, false);
+			this.parent = unwrapParent(parent);
+			this.child = wrapChildInView(child);
 
 			nodeParentLookUp.put(parent, this);
 			nodeParentLookUp.put(child, this);
 
 		}
 
-		private Select wrapInView(Select node, boolean isParent) {
+		private Select unwrapParent(Select node) {
 
-			if (isParent) {
-				if (node instanceof AnalyticView) {
-					return (Select)node.getParent();
-				}
-			} else {
-				if (node instanceof TableDefinition td) {
-					return new AnalyticView(td);
-				}
+			if (node instanceof AnalyticView) {
+				return (Select) node.getParent();
+			}
+			return node;
+		}
+
+		private Select wrapChildInView(Select node) {
+
+			if (node instanceof TableDefinition td) {
+				return new AnalyticView(td);
 			}
 			return node;
 		}
