@@ -43,15 +43,12 @@ import org.springframework.util.Assert;
 class AnalyticStructureBuilder<T, C> {
 
 	private Select nodeRoot;
-	private Select aggregateRootTable;
 	private Map<Object, Select> nodeParentLookUp = new HashMap<>();
 
 	AnalyticStructureBuilder<T, C> addTable(T table,
 			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
 		this.nodeRoot = createTable(table, tableDefinitionConfiguration);
-
-		this.aggregateRootTable = this.nodeRoot;
 
 		return this;
 	}
@@ -70,6 +67,10 @@ class AnalyticStructureBuilder<T, C> {
 		return this;
 	}
 
+	/**
+	 * collects a list of nodes starting with the direct node parent of the node passed as an argument, going all the way
+	 * up to the root.
+	 */
 	private List<Select> collectNodeParents(Select node) {
 
 		List<Select> result = new ArrayList<>();
@@ -83,10 +84,18 @@ class AnalyticStructureBuilder<T, C> {
 
 	private Select replace(Select newNode, List<Select> nodes) {
 
-		for (int i = nodes.size() - 1; i >= 0; i--) {
-			Select oldNode = nodes.get(i);
+		Select previousOldNode = null;
 
-			newNode = new AnalyticJoin((Select) oldNode.getParent(), newNode);
+		for (Select oldNode : nodes) {
+
+			Object parent = oldNode.getParent();
+			if (previousOldNode == null || !previousOldNode.equals(parent)) {
+
+				newNode = new AnalyticJoin((Select) parent, newNode);
+			} else {
+				newNode = new AnalyticJoin(newNode,((AnalyticJoin) oldNode).getChild());
+			}
+			previousOldNode = oldNode;
 		}
 
 		return newNode;
@@ -100,6 +109,10 @@ class AnalyticStructureBuilder<T, C> {
 		return nodeRoot.getId();
 	}
 
+	/**
+	 * Returns the node closest to the root of which the chain build by following the `parent` <i>(Note: not the node
+	 * parent)</i> relationship leads to the node passed as an argument.
+	 */
 	private Select findUltimateNodeParent(T parent) {
 
 		Select nodeParent = (Select) nodeParentLookUp.get(parent);
@@ -147,36 +160,48 @@ class AnalyticStructureBuilder<T, C> {
 
 		private final T table;
 		private final AnalyticColumn id;
+		private final ForeignKey foreignKey;
 		private final List<? extends AnalyticColumn> columns;
 
-		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns) {
+		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey) {
 
 			this.table = table;
 			this.id = id;
+			this.foreignKey = foreignKey;
 			this.columns = Collections.unmodifiableList(columns);
 
 			nodeParentLookUp.put(table, this);
 		}
 
 		TableDefinition(T table) {
-
-			this(table, null, Collections.emptyList());
-
+			this(table, null, Collections.emptyList(), null);
 		}
 
 		TableDefinition withId(C id) {
-			return new TableDefinition(table, new BaseColumn(id), columns);
+			return new TableDefinition(table, new BaseColumn(id), columns, foreignKey);
 		}
 
 		TableDefinition withColumns(C... columns) {
 
-			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList());
+			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList(), foreignKey);
+		}
+
+		TableDefinition withForeignKey(ForeignKey foreignKey) {
+			return new TableDefinition(table, id, columns, foreignKey);
 		}
 
 		@Override
 		public List<? extends AnalyticColumn> getColumns() {
 
-			return columns;
+			List<AnalyticColumn> allColumns = new ArrayList<>(columns);
+			if (id != null) {
+				allColumns.add(id);
+			}
+			if (foreignKey != null) {
+				allColumns.add(foreignKey);
+			}
+
+			return allColumns;
 		}
 
 		@Override
@@ -197,37 +222,10 @@ class AnalyticStructureBuilder<T, C> {
 		T getTable() {
 			return table;
 		}
-	}
-
-	abstract class AnalyticColumn {
-		abstract C getColumn();
-	}
-
-	class BaseColumn extends AnalyticColumn {
-
-		final C column;
-
-		BaseColumn(C column) {
-			this.column = column;
-		}
 
 		@Override
-		C getColumn() {
-			return column;
-		}
-	}
-
-	class DerivedColumn extends AnalyticColumn {
-
-		final AnalyticColumn column;
-
-		DerivedColumn(AnalyticColumn column) {
-			this.column = column;
-		}
-
-		@Override
-		C getColumn() {
-			return column.getColumn();
+		public String toString() {
+			return "TD{" + table + '}';
 		}
 	}
 
@@ -241,8 +239,8 @@ class AnalyticStructureBuilder<T, C> {
 			this.parent = unwrapParent(parent);
 			this.child = wrapChildInView(child);
 
-			nodeParentLookUp.put(parent, this);
-			nodeParentLookUp.put(child, this);
+			nodeParentLookUp.put(this.parent, this);
+			nodeParentLookUp.put(this.child, this);
 
 		}
 
@@ -286,6 +284,14 @@ class AnalyticStructureBuilder<T, C> {
 		Object getParent() {
 			return parent;
 		}
+		Select getChild() {
+			return child;
+		}
+
+		@Override
+		public String toString() {
+			return "AJ {" + "p=" + parent + ", c=" + child + '}';
+		}
 	}
 
 	class AnalyticView extends Select {
@@ -318,6 +324,65 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		Object getParent() {
 			return table;
+		}
+
+		@Override
+		public String toString() {
+			return "AV{" + table + '}';
+		}
+	}
+
+
+	abstract class AnalyticColumn {
+		abstract C getColumn();
+	}
+
+	class BaseColumn extends AnalyticColumn {
+
+		final C column;
+
+		BaseColumn(C column) {
+			this.column = column;
+		}
+
+		@Override
+		C getColumn() {
+			return column;
+		}
+	}
+
+	class DerivedColumn extends AnalyticColumn {
+
+		final AnalyticColumn column;
+
+		DerivedColumn(AnalyticColumn column) {
+			this.column = column;
+		}
+
+		@Override
+		C getColumn() {
+			return column.getColumn();
+		}
+	}
+
+	class RowNumber extends AnalyticColumn {
+		@Override
+		C getColumn() {
+			return null;
+		}
+	}
+
+	class ForeignKey extends AnalyticColumn {
+
+		final AnalyticColumn column;
+
+		ForeignKey(AnalyticColumn column) {
+			this.column = column;
+		}
+
+		@Override
+		C getColumn() {
+			return column.getColumn();
 		}
 	}
 }

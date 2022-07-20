@@ -38,7 +38,7 @@ public class AnalyticStructureBuilderTests {
 				.addTable("table", td -> td.withId(0).withColumns(1, 2));
 
 		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
-				.containsExactlyInAnyOrder(1, 2);
+				.containsExactlyInAnyOrder(0, 1, 2);
 		assertThat(builder.getId()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column).isEqualTo(0);
 	}
 
@@ -47,18 +47,26 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
 				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-				.addChildTo("parent", "child", td -> td.withId(10).withColumns(11, 12));
+				.addChildTo("parent", "child", td -> td.withColumns(11, 12));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(1, 2, 11, 12);
+		assertThat(select.getColumns()).extracting(c -> {
+			if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+				return dc.getColumn();
+			} else if (c instanceof AnalyticStructureBuilder.RowNumber rn) {
+				return "RN";
+			} else if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
+				return "FK(" + fk.getColumn() + ")";
+			} else {
+				return "unknown";
+			}
+		}).containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
-		assertThat(stringify(select)).containsExactlyInAnyOrder(
-				"AJ -> TD(parent)",
-				"AJ -> AV -> TD(child)"
-		);
+		assertThat(stringify(select)).containsExactlyInAnyOrder( //
+				"AJ -> TD(parent)", //
+				"AJ -> AV -> TD(child)");
 	}
 
 	@Test
@@ -66,41 +74,106 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
 				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-				.addChildTo("parent", "child1", td -> td.withId(10).withColumns(11, 12))
-				.addChildTo("parent", "child2", td -> td.withId(20).withColumns(21, 22));
+				.addChildTo("parent", "child1", td -> td.withColumns(11, 12))
+				.addChildTo("parent", "child2", td -> td.withColumns(21, 22));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
+				.containsExactlyInAnyOrder(0, 1, 2, 11, 12, 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
-		assertThat(stringify(select)).containsExactlyInAnyOrder(
-				"AJ -> AJ -> TD(parent)",
-				"AJ -> AJ -> AV -> TD(child1)",
-				"AJ -> AV -> TD(child2)"
-		);
+		assertThat(stringify(select)).containsExactlyInAnyOrder( //
+				"AJ -> AJ -> TD(parent)", //
+				"AJ -> AJ -> AV -> TD(child1)", //
+				"AJ -> AV -> TD(child2)");
 
 	}
+
 	@Test
 	void tableWithChainOfChildren() {
 
 		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
 				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-				.addChildTo("parent", "child1", td -> td.withId(10).withColumns(11, 12))
-				.addChildTo("child1", "child2", td -> td.withId(20).withColumns(21, 22));
+				.addChildTo("parent", "child1", td -> td.withColumns(11, 12))
+				.addChildTo("child1", "child2", td -> td.withColumns(21, 22));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
 		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(1, 2, 11, 12, 21, 22);
+				.containsExactlyInAnyOrder(0, 1, 2, 11, 12, 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
-		assertThat(stringify(select)).containsExactlyInAnyOrder(
-				"AJ -> TD(parent)",
-				"AJ -> AJ -> TD(child1)",
-				"AJ -> AJ -> AV -> TD(child2)"
-		);
+		assertThat(stringify(select)).containsExactlyInAnyOrder( //
+				"AJ -> TD(parent)", //
+				"AJ -> AJ -> TD(child1)", //
+				"AJ -> AJ -> AV -> TD(child2)");
+		;
+
+	}
+
+	@Test
+	void mediumComplexHierarchy() {
+
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2));
+		builder.addChildTo("parent", "child1", td -> td.withId(10).withColumns(101, 102));
+		builder.addChildTo("child1", "child11", td -> td.withColumns(111, 112));
+		builder.addChildTo("parent", "child2", td -> td.withId(20).withColumns(201, 202));
+		builder.addChildTo("child1", "child12", td -> td.withColumns(121, 122));
+
+		AnalyticStructureBuilder.Select select = builder.getSelect();
+
+		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+				.containsExactlyInAnyOrder(0, 1, 2, 10, 101, 102, 111, 112, 20, 201, 202, 121, 122);
+		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+
+		assertThat(select.toString()).isEqualTo(
+				"AJ {p=AJ {p=TD{parent}, c=AJ {p=AJ {p=TD{child1}, c=AV{TD{child11}}}, c=AV{TD{child12}}}}, c=AV{TD{child2}}}");
+
+	}
+
+	@Test
+	void mediumComplexHierarchy2() {
+
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2));
+		builder.addChildTo("parent", "child1", td -> td.withId(10).withColumns(101, 102));
+		builder.addChildTo("child1", "child11", td -> td.withColumns(111, 112));
+		builder.addChildTo("parent", "child2", td -> td.withId(20).withColumns(201, 202));
+		builder.addChildTo("child1", "child12", td -> td.withColumns(121, 122));
+
+		System.out.println(builder.getSelect());
+		builder.addChildTo("child2", "child21", td -> td.withId(21).withColumns(211, 212));
+		System.out.println(builder.getSelect());
+
+		assertThat(builder.getSelect().toString()).isEqualTo(
+				"AJ {p=AJ {p=TD{parent}, c=AJ {p=AJ {p=TD{child1}, c=AV{TD{child11}}}, c=AV{TD{child12}}}}, c=AJ {p=TD{child2}, c=AV{TD{child21}}}}");
+
+	}
+
+	@Test
+	void complexHierarchy() {
+
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2));
+		builder.addChildTo("parent", "child1", td -> td.withId(10).withColumns(101, 102));
+		builder.addChildTo("child1", "child11", td -> td.withColumns(111, 112));
+		builder.addChildTo("parent", "child2", td -> td.withId(20).withColumns(201, 202));
+		builder.addChildTo("child1", "child12", td -> td.withId(12).withColumns(121, 122));
+		builder.addChildTo("child2", "child21", td -> td.withColumns(211, 212));
+		builder.addChildTo("child2", "child22", td -> td.withColumns(221, 222));
+		builder.addChildTo("child12", "child121", td -> td.withColumns(1211, 1212));
+
+		AnalyticStructureBuilder.Select select = builder.getSelect();
+
+		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
+				.containsExactlyInAnyOrder(0, 1, 2, 10, 101, 102, 111, 112, 20, 201, 202, 121, 122, 211, 212, 221, 222, 12,
+						1211, 1212);
+		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+
+		assertThat(select.toString()).isEqualTo(
+				"AJ {p=AJ {p=TD{parent}, c=AJ {p=AJ {p=TD{child1}, c=AV{TD{child11}}}, c=AJ {p=TD{child12}, c=AV{TD{child121}}}}}, c=AJ {p=AJ {p=TD{child2}, c=AV{TD{child21}}}, c=AV{TD{child22}}}}");
 
 	}
 
