@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.lang.Nullable;
 
 public class AnalyticStructureBuilderTests {
 
@@ -30,8 +31,7 @@ public class AnalyticStructureBuilderTests {
 
 		if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
 			return bc.getColumn();
-		} else
-		if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+		} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
 			return extractColumn(dc.getBase());
 		} else if (c instanceof AnalyticStructureBuilder.RowNumber rn) {
 			return "RN";
@@ -67,7 +67,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
@@ -84,12 +85,15 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(0, 1, 2, "FK(0)", -10, 11, 12);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", -10, 11, 12);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
 				"AJ -> TD(parent)", //
 				"AJ -> AV -> TD(child)");
+
+		assertThatSelect(select).joins("parent", "child").on(0);
 	}
 
 	@Test
@@ -103,7 +107,7 @@ public class AnalyticStructureBuilderTests {
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
 		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)",11, 12, "FK(0)", 21, 22);
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12, "FK(0)", 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
@@ -147,8 +151,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "FK(10)", 121, 122);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(
+				0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "FK(10)", 121, 122);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(select.toString()).isEqualTo(
@@ -190,9 +194,9 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "FK(10)", 121, 122, "FK(20)", 211, 212, "FK(20)", 221, 222, 12, "FK(12)",
-						1211, 1212);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(
+				0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "FK(10)", 121, 122, "FK(20)", 211,
+				212, "FK(20)", 221, 222, 12, "FK(12)", 1211, 1212);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(select.toString()).isEqualTo(
@@ -227,6 +231,72 @@ public class AnalyticStructureBuilderTests {
 
 			String prefix = select instanceof AnalyticStructureBuilder.AnalyticView ? "AV" : "AJ";
 			return select.getFroms().stream().flatMap(f -> stringify(f).stream()).map(s -> prefix + " -> " + s).toList();
+		}
+	}
+
+	private static SelectAssert assertThatSelect(AnalyticStructureBuilder.Select select) {
+		return new SelectAssert(select);
+	}
+
+	private static class SelectAssert {
+		private final AnalyticStructureBuilder.Select select;
+
+		public SelectAssert(AnalyticStructureBuilder.Select select) {
+
+			this.select = select;
+		}
+
+		JoinAssert joins(String parent, String child) {
+
+			AnalyticStructureBuilder.AnalyticJoin join = findJoin(select, parent, child);
+			assertThat(join).describedAs("No Join found for %s and %s", parent, child).isNotNull();
+			return new JoinAssert(join);
+		}
+
+		@Nullable
+		private AnalyticStructureBuilder.AnalyticJoin findJoin(AnalyticStructureBuilder.Select select, String parent,
+				String child) {
+
+			if (!(select instanceof AnalyticStructureBuilder.AnalyticJoin join)) {
+				return null;
+			}
+
+			if (parent.equals(unwrap(join.getParent())) && child.equals(unwrap(join.getChild()))) {
+				return join;
+			}
+
+			AnalyticStructureBuilder.AnalyticJoin parentSearchResult = findJoin(join.getParent(), parent, child);
+			if (parentSearchResult != null) {
+				return parentSearchResult;
+			}
+			return findJoin(join.getChild(), parent, child);
+		}
+
+		private Object unwrap(AnalyticStructureBuilder.Select node) {
+
+			if (node instanceof AnalyticStructureBuilder.AnalyticJoin) {
+				return null;
+			}
+
+			if (node instanceof AnalyticStructureBuilder.TableDefinition td) {
+				return td.getTable();
+			}
+			return unwrap((AnalyticStructureBuilder.Select) node.getParent());
+		}
+	}
+
+	private static class JoinAssert {
+		private final AnalyticStructureBuilder.AnalyticJoin join;
+
+		public JoinAssert(AnalyticStructureBuilder.AnalyticJoin join) {
+
+			this.join = join;
+		}
+
+		void on(int idOfParent) {
+			assertThat(join.getJoinCondition()).extracting(jc -> jc.getParent().getColumn())
+					.isEqualTo(idOfParent);
+
 		}
 	}
 }

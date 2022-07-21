@@ -43,7 +43,7 @@ import org.springframework.util.Assert;
 class AnalyticStructureBuilder<T, C> {
 
 	private Select nodeRoot;
-	private Map<Object, Select> nodeParentLookUp = new HashMap<>();
+	private final Map<Object, Select> nodeParentLookUp = new HashMap<>();
 
 	AnalyticStructureBuilder<T, C> addTable(T table,
 			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
@@ -93,7 +93,7 @@ class AnalyticStructureBuilder<T, C> {
 
 				newNode = new AnalyticJoin((Select) parent, newNode);
 			} else {
-				newNode = new AnalyticJoin(newNode,((AnalyticJoin) oldNode).getChild());
+				newNode = new AnalyticJoin(newNode, ((AnalyticJoin) oldNode).getChild());
 			}
 			previousOldNode = oldNode;
 		}
@@ -115,7 +115,7 @@ class AnalyticStructureBuilder<T, C> {
 	 */
 	private Select findUltimateNodeParent(T parent) {
 
-		Select nodeParent = (Select) nodeParentLookUp.get(parent);
+		Select nodeParent = nodeParentLookUp.get(parent);
 
 		Assert.state(nodeParent != null, "There must be a node parent");
 		Assert.state(nodeParent.getParent().equals(parent), "The object in question must be the parent of the node parent");
@@ -125,7 +125,7 @@ class AnalyticStructureBuilder<T, C> {
 
 	private Select findUltimateNodeParent(Select node) {
 
-		Select nodeParent = (Select) nodeParentLookUp.get(node);
+		Select nodeParent = nodeParentLookUp.get(node);
 
 		if (nodeParent == null) {
 			return node;
@@ -157,15 +157,21 @@ class AnalyticStructureBuilder<T, C> {
 		abstract Object getParent();
 	}
 
-	class TableDefinition extends Select {
+	abstract class SingleTableSelect extends Select {
+
+		abstract ForeignKey getForeignKey();
+	}
+
+	class TableDefinition extends SingleTableSelect {
 
 		private final T table;
 		private final AnalyticColumn id;
-		private final ForeignKey foreignKey;
 		private final List<? extends AnalyticColumn> columns;
+		private final ForeignKey foreignKey;
 		private final BaseColumn keyColumn;
 
-		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey, BaseColumn keyColumn) {
+		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey,
+				BaseColumn keyColumn) {
 
 			this.table = table;
 			this.id = id;
@@ -186,7 +192,8 @@ class AnalyticStructureBuilder<T, C> {
 
 		TableDefinition withColumns(C... columns) {
 
-			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList(), foreignKey, keyColumn);
+			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList(), foreignKey,
+					keyColumn);
 		}
 
 		TableDefinition withForeignKey(ForeignKey foreignKey) {
@@ -195,6 +202,11 @@ class AnalyticStructureBuilder<T, C> {
 
 		TableDefinition withKeyColumn(C key) {
 			return new TableDefinition(table, id, columns, foreignKey, new BaseColumn(key));
+		}
+
+		@Override
+		ForeignKey getForeignKey() {
+			return foreignKey;
 		}
 
 		@Override
@@ -244,6 +256,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		private final Select parent;
 		private final Select child;
+		private final JoinCondition joinCondition;
 
 		AnalyticJoin(Select parent, Select child) {
 
@@ -252,8 +265,9 @@ class AnalyticStructureBuilder<T, C> {
 			if (child instanceof TableDefinition td && parent.getId() != null) {
 				child = td.withForeignKey(new ForeignKey(parent.getId()));
 			}
-
 			this.child = wrapChildInView(child);
+
+				this.joinCondition = new JoinCondition(parent.getId());
 
 			nodeParentLookUp.put(this.parent, this);
 			nodeParentLookUp.put(this.child, this);
@@ -297,9 +311,10 @@ class AnalyticStructureBuilder<T, C> {
 		}
 
 		@Override
-		Object getParent() {
+		Select getParent() {
 			return parent;
 		}
+
 		Select getChild() {
 			return child;
 		}
@@ -308,9 +323,28 @@ class AnalyticStructureBuilder<T, C> {
 		public String toString() {
 			return "AJ {" + "p=" + parent + ", c=" + child + '}';
 		}
+
+		JoinCondition getJoinCondition() {
+			return joinCondition;
+		}
+
 	}
 
-	class AnalyticView extends Select {
+	class JoinCondition {
+
+		private final AnalyticColumn parent;
+
+		JoinCondition(AnalyticColumn parent) {
+
+			this.parent = parent;
+		}
+
+		AnalyticColumn getParent() {
+			return parent;
+		}
+	}
+
+	class AnalyticView extends SingleTableSelect {
 
 		private final TableDefinition table;
 
@@ -346,8 +380,12 @@ class AnalyticStructureBuilder<T, C> {
 		public String toString() {
 			return "AV{" + table + '}';
 		}
-	}
 
+		@Override
+		ForeignKey getForeignKey() {
+			return table.getForeignKey();
+		}
+	}
 
 	abstract class AnalyticColumn {
 		abstract C getColumn();
@@ -380,7 +418,7 @@ class AnalyticStructureBuilder<T, C> {
 			return column.getColumn();
 		}
 
-		AnalyticColumn getBase(){
+		AnalyticColumn getBase() {
 			return column;
 		}
 	}
