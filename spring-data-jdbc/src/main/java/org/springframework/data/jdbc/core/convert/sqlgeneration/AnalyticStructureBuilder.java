@@ -163,32 +163,38 @@ class AnalyticStructureBuilder<T, C> {
 		private final AnalyticColumn id;
 		private final ForeignKey foreignKey;
 		private final List<? extends AnalyticColumn> columns;
+		private final BaseColumn keyColumn;
 
-		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey) {
+		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey, BaseColumn keyColumn) {
 
 			this.table = table;
 			this.id = id;
 			this.foreignKey = foreignKey;
 			this.columns = Collections.unmodifiableList(columns);
+			this.keyColumn = keyColumn;
 
 			nodeParentLookUp.put(table, this);
 		}
 
 		TableDefinition(T table) {
-			this(table, null, Collections.emptyList(), null);
+			this(table, null, Collections.emptyList(), null, null);
 		}
 
 		TableDefinition withId(C id) {
-			return new TableDefinition(table, new BaseColumn(id), columns, foreignKey);
+			return new TableDefinition(table, new BaseColumn(id), columns, foreignKey, keyColumn);
 		}
 
 		TableDefinition withColumns(C... columns) {
 
-			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList(), foreignKey);
+			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList(), foreignKey, keyColumn);
 		}
 
 		TableDefinition withForeignKey(ForeignKey foreignKey) {
-			return new TableDefinition(table, id, columns, foreignKey);
+			return new TableDefinition(table, id, columns, foreignKey, keyColumn);
+		}
+
+		TableDefinition withKeyColumn(C key) {
+			return new TableDefinition(table, id, columns, foreignKey, new BaseColumn(key));
 		}
 
 		@Override
@@ -200,6 +206,9 @@ class AnalyticStructureBuilder<T, C> {
 			}
 			if (foreignKey != null) {
 				allColumns.add(foreignKey);
+			}
+			if (keyColumn != null) {
+				allColumns.add(keyColumn);
 			}
 
 			return allColumns;
@@ -228,6 +237,7 @@ class AnalyticStructureBuilder<T, C> {
 		public String toString() {
 			return "TD{" + table + '}';
 		}
+
 	}
 
 	class AnalyticJoin extends Select {

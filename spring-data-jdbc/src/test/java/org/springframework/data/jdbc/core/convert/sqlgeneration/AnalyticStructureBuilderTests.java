@@ -76,6 +76,23 @@ public class AnalyticStructureBuilderTests {
 	}
 
 	@Test
+	void tableWithSingleChildWithKey() {
+
+		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
+				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
+				.addChildTo("parent", "child", td -> td.withColumns(11, 12).withKeyColumn(-10));
+
+		AnalyticStructureBuilder.Select select = builder.getSelect();
+
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(0, 1, 2, "FK(0)", -10, 11, 12);
+		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+
+		assertThat(stringify(select)).containsExactlyInAnyOrder( //
+				"AJ -> TD(parent)", //
+				"AJ -> AV -> TD(child)");
+	}
+
+	@Test
 	void tableWithMultipleChildren() {
 
 		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
