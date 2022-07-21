@@ -149,6 +149,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		abstract List<? extends AnalyticColumn> getColumns();
 
+		@Nullable
 		abstract AnalyticColumn getId();
 
 		abstract List<Select> getFroms();
@@ -237,6 +238,11 @@ class AnalyticStructureBuilder<T, C> {
 		AnalyticJoin(Select parent, Select child) {
 
 			this.parent = unwrapParent(parent);
+
+			if (child instanceof TableDefinition td && parent.getId() != null) {
+				child = td.withForeignKey(new ForeignKey(parent.getId()));
+			}
+
 			this.child = wrapChildInView(child);
 
 			nodeParentLookUp.put(this.parent, this);
@@ -362,6 +368,10 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		C getColumn() {
 			return column.getColumn();
+		}
+
+		AnalyticColumn getBase(){
+			return column;
 		}
 	}
 

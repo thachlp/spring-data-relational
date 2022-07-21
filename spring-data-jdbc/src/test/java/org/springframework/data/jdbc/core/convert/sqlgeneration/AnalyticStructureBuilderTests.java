@@ -26,6 +26,22 @@ import org.junit.jupiter.api.Test;
 
 public class AnalyticStructureBuilderTests {
 
+	private static Object extractColumn(Object c) {
+
+		if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
+			return bc.getColumn();
+		} else
+		if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+			return extractColumn(dc.getBase());
+		} else if (c instanceof AnalyticStructureBuilder.RowNumber rn) {
+			return "RN";
+		} else if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
+			return "FK(" + fk.getColumn() + ")";
+		} else {
+			return "unknown";
+		}
+	}
+
 	/**
 	 * A simple table should result in a simple select. Columns are represented by
 	 * {@link org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticStructureBuilder.BaseColumn} since they are
@@ -51,17 +67,7 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(c -> {
-			if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
-				return dc.getColumn();
-			} else if (c instanceof AnalyticStructureBuilder.RowNumber rn) {
-				return "RN";
-			} else if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
-				return "FK(" + fk.getColumn() + ")";
-			} else {
-				return "unknown";
-			}
-		}).containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
@@ -79,8 +85,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(0, 1, 2, 11, 12, 21, 22);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)",11, 12, "FK(0)", 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
@@ -100,8 +106,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(0, 1, 2, 11, 12, 21, 22);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12, 21, 22);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
@@ -124,8 +130,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(0, 1, 2, 10, 101, 102, 111, 112, 20, 201, 202, 121, 122);
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "FK(10)", 121, 122);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
 		assertThat(select.toString()).isEqualTo(
@@ -167,8 +173,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(c -> ((AnalyticStructureBuilder.DerivedColumn) c).getColumn())
-				.containsExactlyInAnyOrder(0, 1, 2, 10, 101, 102, 111, 112, 20, 201, 202, 121, 122, 211, 212, 221, 222, 12,
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
+				.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "FK(10)", 121, 122, "FK(20)", 211, 212, "FK(20)", 221, 222, 12, "FK(12)",
 						1211, 1212);
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
 
