@@ -257,17 +257,21 @@ class AnalyticStructureBuilder<T, C> {
 		private final Select parent;
 		private final Select child;
 		private final JoinCondition joinCondition;
+		private final List<AnalyticColumn> columnsFromJoin = new ArrayList();
 
 		AnalyticJoin(Select parent, Select child) {
 
 			this.parent = unwrapParent(parent);
 
 			if (child instanceof TableDefinition td && parent.getId() != null) {
-				child = td.withForeignKey(new ForeignKey(parent.getId()));
+				ForeignKey foreignKey = new ForeignKey(parent.getId());
+				child = td.withForeignKey(foreignKey);
+				columnsFromJoin.add(new Max(parent.getId(), foreignKey));
+
 			}
 			this.child = wrapChildInView(child);
 
-				this.joinCondition = new JoinCondition(parent.getId());
+			this.joinCondition = new JoinCondition(parent.getId());
 
 			nodeParentLookUp.put(this.parent, this);
 			nodeParentLookUp.put(this.child, this);
@@ -296,6 +300,7 @@ class AnalyticStructureBuilder<T, C> {
 			List<AnalyticColumn> result = new ArrayList<>();
 			parent.getColumns().forEach(c -> result.add(new DerivedColumn(c)));
 			child.getColumns().forEach(c -> result.add(new DerivedColumn(c)));
+			columnsFromJoin.forEach(c -> result.add(new DerivedColumn(c)));
 
 			return result;
 		}
@@ -443,4 +448,30 @@ class AnalyticStructureBuilder<T, C> {
 			return column.getColumn();
 		}
 	}
+
+	class Max extends AnalyticColumn {
+
+		final AnalyticColumn left;
+		final AnalyticColumn right;
+
+		Max(AnalyticColumn left, AnalyticColumn right) {
+
+			this.left = left;
+			this.right = right;
+		}
+
+		@Override
+		C getColumn() {
+			return null;
+		}
+
+		AnalyticColumn getLeft() {
+			return left;
+		}
+
+		AnalyticColumn getRight() {
+			return right;
+		}
+	}
+
 }
