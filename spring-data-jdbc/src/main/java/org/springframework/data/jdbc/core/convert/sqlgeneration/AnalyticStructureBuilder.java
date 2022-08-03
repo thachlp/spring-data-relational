@@ -67,6 +67,20 @@ class AnalyticStructureBuilder<T, C> {
 		return this;
 	}
 
+	AnalyticStructureBuilder<T, C> addSingleChildTo(T parent, T child,
+			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
+
+		Select nodeParent = findUltimateNodeParent(parent);
+
+		List<Select> nodeParentChain = collectNodeParents(nodeParent);
+
+		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration));
+
+		this.nodeRoot = replace(newNode, nodeParentChain);
+
+		return this;
+	}
+
 	/**
 	 * collects a list of nodes starting with the direct node parent of the node passed as an argument, going all the way
 	 * up to the root.
