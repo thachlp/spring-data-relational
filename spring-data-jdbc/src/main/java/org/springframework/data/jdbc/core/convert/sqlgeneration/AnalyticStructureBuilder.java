@@ -16,6 +16,7 @@
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import static java.util.Arrays.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticStructureBuilder.Multiplicity.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,7 +75,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		List<Select> nodeParentChain = collectNodeParents(nodeParent);
 
-		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration));
+		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration), SINGLE);
 
 		this.nodeRoot = replace(newNode, nodeParentChain);
 
@@ -272,8 +273,9 @@ class AnalyticStructureBuilder<T, C> {
 		private final Select child;
 		private final JoinCondition joinCondition;
 		private final List<AnalyticColumn> columnsFromJoin = new ArrayList();
+		private final Multiplicity multiplicity;
 
-		AnalyticJoin(Select parent, Select child) {
+		AnalyticJoin(Select parent, Select child, Multiplicity multiplicity) {
 
 			this.parent = unwrapParent(parent);
 
@@ -286,10 +288,15 @@ class AnalyticStructureBuilder<T, C> {
 			this.child = wrapChildInView(child);
 
 			this.joinCondition = new JoinCondition(parent.getId());
+			this.multiplicity = multiplicity;
 
 			nodeParentLookUp.put(this.parent, this);
 			nodeParentLookUp.put(this.child, this);
 
+		}
+
+		AnalyticJoin(Select parent, Select child) {
+			this(parent, child, MULTIPLE);
 		}
 
 		private Select unwrapParent(Select node) {
@@ -347,6 +354,11 @@ class AnalyticStructureBuilder<T, C> {
 			return joinCondition;
 		}
 
+	}
+
+	enum Multiplicity {
+		SINGLE,
+		MULTIPLE
 	}
 
 	class JoinCondition {
