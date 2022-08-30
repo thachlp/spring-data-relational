@@ -15,7 +15,6 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import static org.assertj.core.api.Assertions.*;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,6 +25,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.lang.Nullable;
+
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticAssertions.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.ForeignKeyPattern.*;
 
 public class AnalyticStructureBuilderTests {
 
@@ -72,9 +74,10 @@ public class AnalyticStructureBuilderTests {
 				.addChildTo("parent", "child", td -> td.withColumns("child-name", "child-lastname"));
 
 
-		AnalyticAssertions.assertThat(builder).isNotNull();
-		AnalyticAssertions.assertThat(builder).columns()
-						.containsDataColumns("parentId", "parent-name", "parent-lastname");
+		assertThat(builder).isNotNull();
+		assertThat(builder).columns()
+						.containsDataColumns("parentId", "parent-name", "parent-lastname")
+				.containsSpecialColumns(fk("parentId"));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 

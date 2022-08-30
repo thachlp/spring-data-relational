@@ -55,7 +55,7 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 				boolean found = false;
 				for (AnalyticStructureBuilder.AnalyticColumn actualColumn : actualColumns) {
-					C theActualColumn = extractColumn(actualColumn);
+					Object theActualColumn = extractColumn(actualColumn);
 
 					if (expectedColumn.equals(theActualColumn)) {
 						found = true;
@@ -74,15 +74,26 @@ public class AnalyticStructureBuilderAssert<T, C>
 			return this;
 		}
 
-		private C extractColumn(Object c) {
 
-			if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
-				return (C) bc.getColumn();
-			} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
-				return (C) extractColumn(dc.getBase());
+		ColumnsAssert<T, C>  containsSpecialColumns(ForeignKeyPattern<C> pattern) {
+
+			List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns = actual.getSelect().getColumns();
+			boolean found = false;
+			for (AnalyticStructureBuilder.AnalyticColumn actualColumn : actualColumns) {
+
+				if (pattern.matches(actualColumn)) {
+					found = true;
+					break;
+				}
 			}
 
-			return null;
+			if (!found) {
+				String actualColumnsDescription = actualColumns.stream().map(this::toString).collect(Collectors.joining(", "));
+				throw Failures.instance().failure(info,
+						new ColumnsShouldContain(pattern, actualColumnsDescription));
+			}
+
+			return this;
 		}
 
 		private String toString(Object c) {
@@ -95,6 +106,18 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 			throw new IllegalStateException("Column " + c + " is neither a BaseColumn nor a Derived one");
 		}
+
+	}
+
+	static Object extractColumn(Object c) {
+
+		if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
+			return  bc.getColumn();
+		} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+			return extractColumn(dc.getBase());
+		}
+
+		return null;
 	}
 
 	private static class ColumnsShouldContain extends BasicErrorMessageFactory {

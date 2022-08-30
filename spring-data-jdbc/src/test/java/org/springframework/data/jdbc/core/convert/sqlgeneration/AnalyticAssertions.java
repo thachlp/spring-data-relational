@@ -22,4 +22,5 @@ public class AnalyticAssertions extends Assertions {
 	public static <T, C> AnalyticStructureBuilderAssert<T, C> assertThat(AnalyticStructureBuilder<T, C> actual) {
 		return new AnalyticStructureBuilderAssert<>(actual);
 	}
+
 }
