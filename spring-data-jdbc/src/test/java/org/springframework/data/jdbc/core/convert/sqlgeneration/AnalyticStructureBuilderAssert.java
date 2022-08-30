@@ -46,39 +46,24 @@ public class AnalyticStructureBuilderAssert<T, C>
 			super(actual, ColumnsAssert.class);
 		}
 
-		ColumnsAssert<T, C> containsDataColumns(C... expected) {
+		ColumnsAssert<T, C> containsColumns(Object... expected) {
+
+			Pattern[] patterns = new Pattern[expected.length];
+			for (int i = 0; i < expected.length; i++) {
+
+				Object object = expected[i];
+				patterns[i] = object instanceof Pattern ? (Pattern) object : new BasePattern(object);
+			}
+
+			return containsPatterns(patterns);
+		}
+
+		ColumnsAssert<T, C> containsPatterns(Pattern... patterns) {
 
 			List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns = actual.getSelect().getColumns();
 
-			for (C expectedColumn : expected) {
-
-				boolean found = false;
-				for (AnalyticStructureBuilder.AnalyticColumn actualColumn : actualColumns) {
-					Object theActualColumn = extractColumn(actualColumn);
-
-					if (expectedColumn.equals(theActualColumn)) {
-						found = true;
-						break;
-					}
-				}
-
-				if (!found) {
-					String actualColumnsDescription = actualColumns.stream().map(this::toString)
-							.collect(Collectors.joining(", "));
-					throw Failures.instance().failure(info,
-							new ColumnsShouldContain(expectedColumn.toString(), actualColumnsDescription));
-				}
-
-			}
-
-			return this;
-		}
-
-		ColumnsAssert<T, C> containsSpecialColumns(Pattern... patterns) {
-
 			for (Pattern pattern : patterns) {
 
-				List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns = actual.getSelect().getColumns();
 				boolean found = false;
 				for (AnalyticStructureBuilder.AnalyticColumn actualColumn : actualColumns) {
 
@@ -112,7 +97,6 @@ public class AnalyticStructureBuilderAssert<T, C>
 	}
 
 	static Object extractColumn(Object c) {
-
 
 		if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
 			return bc.getColumn();

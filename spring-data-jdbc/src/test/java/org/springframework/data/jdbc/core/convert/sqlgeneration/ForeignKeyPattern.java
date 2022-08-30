@@ -17,8 +17,6 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import org.springframework.lang.Nullable;
 
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticStructureBuilderAssert.*;
-
 record ForeignKeyPattern<C>(C name) implements Pattern{
 
 	public static <C> ForeignKeyPattern<C> fk(String name){
