@@ -75,7 +75,7 @@ public class AnalyticStructureBuilderTests {
 		assertThat(builder).isNotNull();
 		assertThat(builder).columns() //
 				.containsColumnsExactly("parentId", "parent-name", "parent-lastname", //
-//						"child-name", "child-lastname", //
+						"child-name", "child-lastname", //
 						fk("parentId"), max("parentId", fk("parentId")));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();

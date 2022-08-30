@@ -18,7 +18,6 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.AbstractAssert;
@@ -87,10 +86,9 @@ public class AnalyticStructureBuilderAssert<T, C>
 				return this;
 			}
 
-			throw Failures.instance().failure(info,
-					ColumnsShouldContainExactly.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
+			throw Failures.instance().failure(info, ColumnsShouldContainExactly
+					.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
 		}
-
 
 	}
 
@@ -113,17 +111,25 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 	private static class ColumnsShouldContainExactly extends BasicErrorMessageFactory {
 
-		static ColumnsShouldContainExactly columnsShouldContainExactly(List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns,
-																	   Pattern[] expected, Object notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+		static ColumnsShouldContainExactly columnsShouldContainExactly(
+				List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns, Pattern[] expected,
+				List<Pattern> notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
 			String actualColumnsDescription = actualColumns.stream().map(ColumnsShouldContainExactly::toString)
 					.collect(Collectors.joining(", "));
 
 			String expectedDescription = Arrays.stream(expected).map(Pattern::render).collect(Collectors.joining(", "));
+
+			if (notFound.isEmpty()) {
+				return new ColumnsShouldContainExactly(actualColumnsDescription, expectedDescription, notExpected);
+			}
+			if (notExpected.isEmpty()) {
+				return new ColumnsShouldContainExactly(actualColumnsDescription, expectedDescription, notFound);
+			}
 			return new ColumnsShouldContainExactly(actualColumnsDescription, expectedDescription, notFound, notExpected);
 		}
 
-		private ColumnsShouldContainExactly(String actualColumns,
-				String expected, Object notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+		private ColumnsShouldContainExactly(String actualColumns, String expected, Object notFound,
+				List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
 			super("""
 
 					Expecting:
@@ -132,6 +138,26 @@ public class AnalyticStructureBuilderAssert<T, C>
 					  But <%s> were not found,
 					  and <%s> where not expected.""", actualColumns, expected, notFound, notExpected,
 					StandardComparisonStrategy.instance());
+		}
+
+		private ColumnsShouldContainExactly(String actualColumns, String expected,
+				List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+			super("""
+
+					Expecting:
+					  <%s>
+					  to contain exactly <%s>.
+					  But <%s> where not expected.""", actualColumns, expected, notExpected,
+					StandardComparisonStrategy.instance());
+		}
+
+		private ColumnsShouldContainExactly(String actualColumns, String expected, Object notFound) {
+			super("""
+
+					Expecting:
+					  <%s>
+					  to contain exactly <%s>.
+					  But <%s> were not found.""", actualColumns, expected, notFound, StandardComparisonStrategy.instance());
 		}
 
 		private static String toString(Object c) {

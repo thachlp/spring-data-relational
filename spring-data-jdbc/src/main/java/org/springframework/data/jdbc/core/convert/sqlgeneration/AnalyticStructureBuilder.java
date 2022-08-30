@@ -434,6 +434,11 @@ class AnalyticStructureBuilder<T, C> {
 		C getColumn() {
 			return column;
 		}
+
+		@Override
+		public String toString() {
+			return column.toString();
+		}
 	}
 
 	class DerivedColumn extends AnalyticColumn {
@@ -451,6 +456,11 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticColumn getBase() {
 			return column;
+		}
+
+		@Override
+		public String toString() {
+			return column.toString();
 		}
 	}
 
