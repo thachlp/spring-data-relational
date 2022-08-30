@@ -25,6 +25,8 @@ import org.assertj.core.error.BasicErrorMessageFactory;
 import org.assertj.core.internal.Failures;
 import org.assertj.core.internal.StandardComparisonStrategy;
 
+import static org.assertj.core.api.Assertions.*;
+
 /**
  * Assertions for {@link AnalyticStructureBuilder}.
  * 
@@ -38,58 +40,52 @@ public class AnalyticStructureBuilderAssert<T, C>
 		super(actual, AnalyticStructureBuilderAssert.class);
 	}
 
-	ColumnsAssert<T, C> columns() {
-		return new ColumnsAssert<>(actual);
+	AnalyticStructureBuilderAssert<T, C> hasExactColumns(Object... expected) {
+
+		Pattern[] patterns = new Pattern[expected.length];
+		for (int i = 0; i < expected.length; i++) {
+
+			Object object = expected[i];
+			patterns[i] = object instanceof Pattern ? (Pattern) object : new BasePattern(object);
+		}
+
+		return containsPatternsExcactly(patterns);
 	}
 
-	static class ColumnsAssert<T, C> extends AbstractAssert<ColumnsAssert<T, C>, AnalyticStructureBuilder<T, C>> {
+	AnalyticStructureBuilderAssert<T, C> hasId(C name) {
 
-		ColumnsAssert(AnalyticStructureBuilder<T, C> actual) {
-			super(actual, ColumnsAssert.class);
-		}
+		assertThat(actual).matches(a -> new BasePattern(name).matches(a.getId()),"has Id " + name + ", but was " + actual.getId());
+		return this;
+	}
 
-		ColumnsAssert<T, C> containsColumnsExactly(Object... expected) {
+	AnalyticStructureBuilderAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
 
-			Pattern[] patterns = new Pattern[expected.length];
-			for (int i = 0; i < expected.length; i++) {
+		List<? extends AnalyticStructureBuilder.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
 
-				Object object = expected[i];
-				patterns[i] = object instanceof Pattern ? (Pattern) object : new BasePattern(object);
-			}
+		List<Pattern> notFound = new ArrayList<>();
+		for (Pattern pattern : patterns) {
 
-			return containsPatternsExcactly(patterns);
-		}
+			boolean found = false;
+			for (AnalyticStructureBuilder.AnalyticColumn actualColumn : availableColumns) {
 
-		ColumnsAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
-
-			List<? extends AnalyticStructureBuilder.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
-
-			List<Pattern> notFound = new ArrayList<>();
-			for (Pattern pattern : patterns) {
-
-				boolean found = false;
-				for (AnalyticStructureBuilder.AnalyticColumn actualColumn : availableColumns) {
-
-					if (pattern.matches(actualColumn)) {
-						found = true;
-						availableColumns.remove(actualColumn);
-						break;
-					}
-				}
-
-				if (!found) {
-					notFound.add(pattern);
+				if (pattern.matches(actualColumn)) {
+					found = true;
+					availableColumns.remove(actualColumn);
+					break;
 				}
 			}
 
-			if (notFound.isEmpty() && availableColumns.isEmpty()) {
-				return this;
+			if (!found) {
+				notFound.add(pattern);
 			}
-
-			throw Failures.instance().failure(info, ColumnsShouldContainExactly
-					.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
 		}
 
+		if (notFound.isEmpty() && availableColumns.isEmpty()) {
+			return this;
+		}
+
+		throw Failures.instance().failure(info, ColumnsShouldContainExactly
+				.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
 	}
 
 	static Object extractColumn(Object c) {
@@ -171,5 +167,4 @@ public class AnalyticStructureBuilderAssert<T, C>
 			throw new IllegalStateException("Column " + c + " is neither a BaseColumn nor a Derived one");
 		}
 	}
-
 }
