@@ -19,7 +19,7 @@ import org.springframework.lang.Nullable;
 
 record ForeignKeyPattern<C>(C name) implements Pattern{
 
-	public static <C> ForeignKeyPattern<C> fk(String name){
+	public static <C> ForeignKeyPattern<C> fk(C name){
 		return new ForeignKeyPattern(name);
 	}
 

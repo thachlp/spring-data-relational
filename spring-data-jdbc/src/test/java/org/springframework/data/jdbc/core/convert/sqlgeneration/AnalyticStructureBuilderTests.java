@@ -86,21 +86,19 @@ public class AnalyticStructureBuilderTests {
 	@Test
 	void tableWithSingleChildWithKey() {
 
-		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-				.addChildTo("parent", "child", td -> td.withColumns(11, 12).withKeyColumn(-10));
+		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+				.addTable("parent", td -> td.withId("parentId").withColumns("parentName", "parentLastname"))
+				.addChildTo("parent", "child", td -> td.withColumns("childName", "childLastname").withKeyColumn("childKey"));
 
-		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-				.containsExactlyInAnyOrder(0, 1, 2, "MAX(0, FK(0))", "FK(0)", -10, 11, 12);
-		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		assertThat(builder).hasExactColumns("parentId", "parentName", "parentLastname", max("parentId", fk("parentId")), fk("parentId"), "childKey", "childName", "childLastname") //
+				.hasId("parentId");
 
-		assertThat(stringify(select)).containsExactlyInAnyOrder( //
+		assertThat(stringify(builder.getSelect())).containsExactlyInAnyOrder( //
 				"AJ -> TD(parent)", //
 				"AJ -> AV -> TD(child)");
 
-		assertThatSelect(select).joins("parent", "child").on(0);
+		assertThatSelect(builder.getSelect()).joins("parent", "child").on("parentId");
 	}
 
 	@Test
@@ -313,7 +311,7 @@ public class AnalyticStructureBuilderTests {
 		return froms;
 	}
 
-	private List<String> stringify(AnalyticStructureBuilder<String, Integer>.Select select) {
+	private List<String> stringify(AnalyticStructureBuilder<String, ?>.Select select) {
 
 		if (select instanceof AnalyticStructureBuilder.TableDefinition) {
 			return Collections
@@ -384,7 +382,7 @@ public class AnalyticStructureBuilderTests {
 			this.join = join;
 		}
 
-		void on(int idOfParent) {
+		void on(Object idOfParent) {
 			assertThat(join.getJoinCondition()).extracting(jc -> jc.getParent().getColumn()).isEqualTo(idOfParent);
 
 		}
