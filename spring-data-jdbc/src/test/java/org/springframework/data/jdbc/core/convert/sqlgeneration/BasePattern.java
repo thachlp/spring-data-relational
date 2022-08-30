@@ -21,4 +21,9 @@ record BasePattern(Object name) implements Pattern {
 	public boolean matches(AnalyticStructureBuilder.AnalyticColumn other) {
 		return name.equals(other.getColumn());
 	}
+
+	@Override
+	public String render() {
+		return name.toString();
+	}
 }

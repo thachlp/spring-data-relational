@@ -28,6 +28,11 @@ record ForeignKeyPattern<C>(C name) implements Pattern{
 		return extractForeignKey(other) != null && name.equals(other.getColumn());
 	}
 
+	@Override
+	public String render() {
+		return "FK(" + name + ")";
+	}
+
 	@Nullable
 	static AnalyticStructureBuilder.ForeignKey extractForeignKey(AnalyticStructureBuilder.AnalyticColumn column) {
 		if (column instanceof AnalyticStructureBuilder.ForeignKey foreignKey) {

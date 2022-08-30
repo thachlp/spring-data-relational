@@ -29,6 +29,11 @@ record MaxPattern<C>(Pattern left, Pattern right) implements Pattern{
 		return max != null && left.matches(max.left) && right.matches(max.right);
 	}
 
+	@Override
+	public String render() {
+		return "MAX(%s, %s)".formatted(left.render(), right.render());
+	}
+
 	@Nullable
 	static AnalyticStructureBuilder.Max extractMax(AnalyticStructureBuilder.AnalyticColumn column) {
 		if (column instanceof AnalyticStructureBuilder.Max max) {

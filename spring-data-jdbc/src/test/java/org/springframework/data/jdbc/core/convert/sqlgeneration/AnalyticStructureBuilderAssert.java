@@ -16,7 +16,9 @@
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.AbstractAssert;
@@ -85,21 +87,10 @@ public class AnalyticStructureBuilderAssert<T, C>
 				return this;
 			}
 
-			String actualColumnsDescription = actual.getSelect().getColumns().stream().map(this::toString)
-					.collect(Collectors.joining(", "));
-			throw Failures.instance().failure(info, new ColumnsShouldContainExactly(actualColumnsDescription, patterns, notFound, availableColumns));
+			throw Failures.instance().failure(info,
+					ColumnsShouldContainExactly.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
 		}
 
-		private String toString(Object c) {
-
-			if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
-				return bc.getColumn() + " (base column)";
-			} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
-				return (C) extractColumn(dc.getBase()) + " (derived column)";
-			}
-
-			throw new IllegalStateException("Column " + c + " is neither a BaseColumn nor a Derived one");
-		}
 
 	}
 
@@ -122,14 +113,36 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 	private static class ColumnsShouldContainExactly extends BasicErrorMessageFactory {
 
-		private ColumnsShouldContainExactly(String actualDescription,Pattern[] expected, Object notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+		static ColumnsShouldContainExactly columnsShouldContainExactly(List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns,
+																	   Pattern[] expected, Object notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+			String actualColumnsDescription = actualColumns.stream().map(ColumnsShouldContainExactly::toString)
+					.collect(Collectors.joining(", "));
+
+			String expectedDescription = Arrays.stream(expected).map(Pattern::render).collect(Collectors.joining(", "));
+			return new ColumnsShouldContainExactly(actualColumnsDescription, expectedDescription, notFound, notExpected);
+		}
+
+		private ColumnsShouldContainExactly(String actualColumns,
+				String expected, Object notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
 			super("""
 
 					Expecting:
 					  <%s>
-					  to contain exactly <%s>. 
+					  to contain exactly <%s>.
 					  But <%s> were not found,
-					  and <%s> where not expected.""",actualDescription, expected, notFound, notExpected, StandardComparisonStrategy.instance());
+					  and <%s> where not expected.""", actualColumns, expected, notFound, notExpected,
+					StandardComparisonStrategy.instance());
+		}
+
+		private static String toString(Object c) {
+
+			if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
+				return bc.getColumn().toString();
+			} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+				return extractColumn(dc.getBase()).toString();
+			}
+
+			throw new IllegalStateException("Column " + c + " is neither a BaseColumn nor a Derived one");
 		}
 	}
 
