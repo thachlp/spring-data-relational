@@ -15,6 +15,7 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,7 +47,7 @@ public class AnalyticStructureBuilderAssert<T, C>
 			super(actual, ColumnsAssert.class);
 		}
 
-		ColumnsAssert<T, C> containsColumns(Object... expected) {
+		ColumnsAssert<T, C> containsColumnsExactly(Object... expected) {
 
 			Pattern[] patterns = new Pattern[expected.length];
 			for (int i = 0; i < expected.length; i++) {
@@ -55,32 +56,38 @@ public class AnalyticStructureBuilderAssert<T, C>
 				patterns[i] = object instanceof Pattern ? (Pattern) object : new BasePattern(object);
 			}
 
-			return containsPatterns(patterns);
+			return containsPatternsExcactly(patterns);
 		}
 
-		ColumnsAssert<T, C> containsPatterns(Pattern... patterns) {
+		ColumnsAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
 
-			List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns = actual.getSelect().getColumns();
+			List<? extends AnalyticStructureBuilder.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
 
+			List<Pattern> notFound = new ArrayList<>();
 			for (Pattern pattern : patterns) {
 
 				boolean found = false;
-				for (AnalyticStructureBuilder.AnalyticColumn actualColumn : actualColumns) {
+				for (AnalyticStructureBuilder.AnalyticColumn actualColumn : availableColumns) {
 
 					if (pattern.matches(actualColumn)) {
 						found = true;
+						availableColumns.remove(actualColumn);
 						break;
 					}
 				}
 
 				if (!found) {
-					String actualColumnsDescription = actualColumns.stream().map(this::toString)
-							.collect(Collectors.joining(", "));
-					throw Failures.instance().failure(info, new ColumnsShouldContain(pattern, actualColumnsDescription));
+					notFound.add(pattern);
 				}
 			}
 
-			return this;
+			if (notFound.isEmpty() && availableColumns.isEmpty()) {
+				return this;
+			}
+
+			String actualColumnsDescription = actual.getSelect().getColumns().stream().map(this::toString)
+					.collect(Collectors.joining(", "));
+			throw Failures.instance().failure(info, new ColumnsShouldContainExactly(actualColumnsDescription, patterns, notFound, availableColumns));
 		}
 
 		private String toString(Object c) {
@@ -113,14 +120,16 @@ public class AnalyticStructureBuilderAssert<T, C>
 		}
 	}
 
-	private static class ColumnsShouldContain extends BasicErrorMessageFactory {
+	private static class ColumnsShouldContainExactly extends BasicErrorMessageFactory {
 
-		private ColumnsShouldContain(Object expected, Object actual) {
-			super("\n" + //
-					"Expecting:\n" + //
-					"  Column <%s>\n" + //
-					"to exist. But was not found in\n" + //
-					"  <%s>", expected, actual, StandardComparisonStrategy.instance());
+		private ColumnsShouldContainExactly(String actualDescription,Pattern[] expected, Object notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+			super("""
+
+					Expecting:
+					  <%s>
+					  to contain exactly <%s>. 
+					  But <%s> were not found,
+					  and <%s> where not expected.""",actualDescription, expected, notFound, notExpected, StandardComparisonStrategy.instance());
 		}
 	}
 
