@@ -73,8 +73,8 @@ public class AnalyticStructureBuilderTests {
 
 		assertThat(builder).isNotNull();
 		assertThat(builder).hasExactColumns("parentId", "parent-name", "parent-lastname", //
-						"child-name", "child-lastname", //
-						fk("parentId"), max("parentId", fk("parentId"))) //
+				"child-name", "child-lastname", //
+				fk("parentId"), max("parentId", fk("parentId"))) //
 				.hasId("parentId");
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
@@ -90,8 +90,9 @@ public class AnalyticStructureBuilderTests {
 				.addTable("parent", td -> td.withId("parentId").withColumns("parentName", "parentLastname"))
 				.addChildTo("parent", "child", td -> td.withColumns("childName", "childLastname").withKeyColumn("childKey"));
 
-
-		assertThat(builder).hasExactColumns("parentId", "parentName", "parentLastname", max("parentId", fk("parentId")), fk("parentId"), "childKey", "childName", "childLastname") //
+		assertThat(builder)
+				.hasExactColumns("parentId", "parentName", "parentLastname", max("parentId", fk("parentId")), fk("parentId"),
+						"childKey", "childName", "childLastname") //
 				.hasId("parentId");
 
 		assertThat(stringify(builder.getSelect())).containsExactlyInAnyOrder( //
@@ -104,16 +105,16 @@ public class AnalyticStructureBuilderTests {
 	@Test
 	void tableWithMultipleChildren() {
 
-		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-				.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-				.addChildTo("parent", "child1", td -> td.withColumns(11, 12))
-				.addChildTo("parent", "child2", td -> td.withColumns(21, 22));
+		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+				.addTable("parent", td -> td.withId("parentId").withColumns("parentName", "parentLastname"))
+				.addChildTo("parent", "child1", td -> td.withColumns("childName", "childLastname"))
+				.addChildTo("parent", "child2", td -> td.withColumns("siblingName", "siblingLastName"));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-				.containsExactlyInAnyOrder(0, 1, 2, "MAX(0, FK(0))", "FK(0)", 11, 12, "MAX(0, FK(0))", "FK(0)", 21, 22);
-		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		assertThat(builder).hasExactColumns("parentId", "parentName", "parentLastname", max("parentId", fk("parentId")),
+				fk("parentId"), "childName", "childLastname", max("parentId", fk("parentId")), fk("parentId"), "siblingName",
+				"siblingLastName").hasId("parentId");
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
 				"AJ -> AJ -> TD(parent)", //
