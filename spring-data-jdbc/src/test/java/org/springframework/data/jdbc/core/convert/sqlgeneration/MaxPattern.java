@@ -17,28 +17,28 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import org.springframework.lang.Nullable;
 
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticStructureBuilderAssert.*;
+record MaxPattern<C>(Pattern left, Pattern right) implements Pattern{
 
-record ForeignKeyPattern<C>(C name) implements Pattern{
-
-	public static <C> ForeignKeyPattern<C> fk(String name){
-		return new ForeignKeyPattern(name);
+	public static <C> MaxPattern<C> max(C left, Pattern right){
+		return new MaxPattern(new BasePattern(left), right);
 	}
 
 	@Override
 	public boolean matches(AnalyticStructureBuilder.AnalyticColumn other) {
-		return extractForeignKey(other) != null && name.equals(other.getColumn());
+		final AnalyticStructureBuilder.Max max = extractMax(other);
+		return max != null && left.matches(max.left) && right.matches(max.right);
 	}
 
 	@Nullable
-	static AnalyticStructureBuilder.ForeignKey extractForeignKey(AnalyticStructureBuilder.AnalyticColumn column) {
-		if (column instanceof AnalyticStructureBuilder.ForeignKey foreignKey) {
-			return foreignKey;
+	static AnalyticStructureBuilder.Max extractMax(AnalyticStructureBuilder.AnalyticColumn column) {
+		if (column instanceof AnalyticStructureBuilder.Max max) {
+			return max;
 		}
 
 		if (column instanceof AnalyticStructureBuilder.DerivedColumn derivedColumn) {
-			return extractForeignKey(derivedColumn.getBase());
+			return extractMax(derivedColumn.getBase());
 		}
 		return null;
 	}
+
 }

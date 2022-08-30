@@ -15,30 +15,10 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import org.springframework.lang.Nullable;
-
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticStructureBuilderAssert.*;
-
-record ForeignKeyPattern<C>(C name) implements Pattern{
-
-	public static <C> ForeignKeyPattern<C> fk(String name){
-		return new ForeignKeyPattern(name);
-	}
+record BasePattern(Object name) implements Pattern {
 
 	@Override
 	public boolean matches(AnalyticStructureBuilder.AnalyticColumn other) {
-		return extractForeignKey(other) != null && name.equals(other.getColumn());
-	}
-
-	@Nullable
-	static AnalyticStructureBuilder.ForeignKey extractForeignKey(AnalyticStructureBuilder.AnalyticColumn column) {
-		if (column instanceof AnalyticStructureBuilder.ForeignKey foreignKey) {
-			return foreignKey;
-		}
-
-		if (column instanceof AnalyticStructureBuilder.DerivedColumn derivedColumn) {
-			return extractForeignKey(derivedColumn.getBase());
-		}
-		return null;
+		return name.equals(other.getColumn());
 	}
 }

@@ -15,6 +15,9 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticAssertions.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.ForeignKeyPattern.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.MaxPattern.*;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,12 +29,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.lang.Nullable;
 
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticAssertions.*;
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.ForeignKeyPattern.*;
-
 public class AnalyticStructureBuilderTests {
-
-	// TODO: assertions statt extractColum?
 
 	private static Object extractColumn(Object c) {
 
@@ -58,12 +56,13 @@ public class AnalyticStructureBuilderTests {
 	@Test
 	void simpleTableWithColumns() {
 
-		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
-				.addTable("person", td -> td.withId("person_id").withColumns("name", "lastname"));
+		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>().addTable("person",
+				td -> td.withId("person_id").withColumns("name", "lastname"));
 
 		assertThat(builder.getColumns()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
 				.containsExactlyInAnyOrder("person_id", "name", "lastname");
-		assertThat(builder.getId()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column).isEqualTo("person_id");
+		assertThat(builder.getId()).extracting(c -> ((AnalyticStructureBuilder.BaseColumn) c).column)
+				.isEqualTo("person_id");
 	}
 
 	@Test
@@ -73,16 +72,16 @@ public class AnalyticStructureBuilderTests {
 				.addTable("parent", td -> td.withId("parentId").withColumns("parent-name", "parent-lastname"))
 				.addChildTo("parent", "child", td -> td.withColumns("child-name", "child-lastname"));
 
-
 		assertThat(builder).isNotNull();
-		assertThat(builder).columns()
-						.containsDataColumns("parentId", "parent-name", "parent-lastname")
-				.containsSpecialColumns(fk("parentId"));
+		assertThat(builder).columns() //
+				.containsDataColumns("parentId", "parent-name", "parent-lastname") //
+				.containsSpecialColumns(fk("parentId"), max("parentId", fk("parentId")));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-				.containsExactlyInAnyOrder("MAX(parentId, FK(parentId))", "parentId", "parent-name", "parent-lastname", "FK(parentId)", "child-name", "child-lastname");
+		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(
+				"MAX(parentId, FK(parentId))", "parentId", "parent-name", "parent-lastname", "FK(parentId)", "child-name",
+				"child-lastname");
 		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo("parentId");
 
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
