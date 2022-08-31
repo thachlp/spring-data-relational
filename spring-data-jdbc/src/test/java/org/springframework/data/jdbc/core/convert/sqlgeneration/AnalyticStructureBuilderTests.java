@@ -199,7 +199,7 @@ public class AnalyticStructureBuilderTests {
 					.addChildTo("granny", "parent", td -> td.withColumns("parentName").withKeyColumn("parentKey"))
 					.addChildTo("parent", "child", td -> td.withColumns("childName"));
 
-			AnalyticStructureBuilder.Select select = builder.getSelect();
+			AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 
 			assertThat(builder).hasExactColumns( //
 					"grannyId", "grannyName", //
@@ -220,16 +220,19 @@ public class AnalyticStructureBuilderTests {
 		@Test
 		void middleSingleChildHasId() {
 
-			AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-					.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-					.addSingleChildTo("parent", "child1", td -> td.withId(10).withColumns(11, 12))
-					.addChildTo("child1", "child2", td -> td.withColumns(21, 22));
+			AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
+					.addSingleChildTo("granny", "parent", td -> td.withId("parentId").withColumns("parentName"))
+					.addChildTo("parent", "child", td -> td.withColumns("childName"));
 
-			AnalyticStructureBuilder.Select select = builder.getSelect();
+			AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 
-			assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-					.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12, "FK(FK(0))", 21, 22);
-			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+			assertThat(builder).hasExactColumns( //
+					"grannyId", "grannyName", //
+					fk("grannyId"), //
+					"parentId", "parentName", //
+					fk(fk("grannyId")), "childName" //
+			).hasId("grannyId");
 
 			assertThat(select.toString()).isEqualTo("AJ {p=TD{parent}, c=AJ {p=TD{child1}, c=AV{TD{child2}}}}");
 		}
