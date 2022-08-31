@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.lang.Nullable;
@@ -132,7 +133,7 @@ public class AnalyticStructureBuilderTests {
 	}
 
 	@Nested
-	// @Disabled
+	@Disabled // these tests are currently only scetches. the asserts need to be reviewed, and the necessary code for them implemented.
 	class TableWithChainOfChildren {
 
 		@Test
@@ -234,46 +235,54 @@ public class AnalyticStructureBuilderTests {
 					fk(fk("grannyId")), "childName" //
 			).hasId("grannyId");
 
-			assertThat(select.toString()).isEqualTo("AJ {p=TD{parent}, c=AJ {p=TD{child1}, c=AV{TD{child2}}}}");
+			assertThat(select.toString()).isEqualTo("AJ {p=TD{granny}, c=AJ {p=TD{parent}, c=AV{TD{child}}}}");
 		}
 
 		@Test
 		void middleSingleChildHasNoId() {
 
-			AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-					.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-					.addSingleChildTo("parent", "child1", td -> td.withColumns(11, 12))
-					.addChildTo("child1", "child2", td -> td.withColumns(21, 22));
+			AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
+					.addSingleChildTo("granny", "parent", td -> td.withColumns("parentName"))
+					.addChildTo("parent", "child", td -> td.withColumns("childName"));
 
 			AnalyticStructureBuilder.Select select = builder.getSelect();
 
-			assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-					.containsExactlyInAnyOrder(0, 1, 2, "FK(0)", 11, 12, 21, 22); // TODO: Max column?
-			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+			assertThat(builder).hasExactColumns("grannyId", "grannyName", fk("grannyId"), "parentName", "childName"); // TODO: Max column?
+			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo("grannyId");
 
-			assertThat(select.toString()).isEqualTo("AJ {p=TD{parent}, c=AJ {p=TD{child1}, c=AV{TD{child2}}}}");
+			assertThat(select.toString()).isEqualTo("AJ {p=TD{granny}, c=AJ {p=TD{parent}, c=AV{TD{child}}}}");
 		}
 	}
 
 	@Test
 	void mediumComplexHierarchy() {
 
-		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-				.addTable("parent", td -> td.withId(0).withColumns(1, 2));
-		builder.addChildTo("parent", "child1", td -> td.withId(10).withColumns(101, 102));
-		builder.addChildTo("child1", "child11", td -> td.withColumns(111, 112));
-		builder.addChildTo("parent", "child2", td -> td.withId(20).withColumns(201, 202));
-		builder.addChildTo("child1", "child12", td -> td.withColumns(121, 122));
+		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+				.addTable("customer", td -> td.withId("customerId").withColumns("customerName"));
+		builder.addChildTo("customer", "address", td -> td.withId("addressId").withColumns("addressName"));
+		builder.addChildTo("address", "city", td -> td.withColumns("cityName"));
+		builder.addChildTo("customer", "order", td -> td.withId("orderId").withColumns("orderName"));
+		builder.addChildTo("address", "type", td -> td.withColumns("typeName"));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(
-				0, 1, 2, "FK(0)", 10, 101, 102, "MAX(10, FK(10))", "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "MAX(10, FK(10))",
-				"FK(10)", 121, 122); // TODO: Why no max columns for some FK here?
-		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		assertThat(builder).hasExactColumns(
+				"customerId", "customerName",
+				fk("customerId"), "addressId",
+				"addressName",
+				max("addressId", fk("addressId")),
+				fk("addressId"),
+				"cityName",
+				fk("customerId"),
+				"orderId", "orderName",
+				max("addressId", fk("addressId")),
+				fk("addressId"),
+				"typeName"// TODO: Why no max columns for some FK here?
+		).hasId("customerId");
 
 		assertThat(select.toString()).isEqualTo(
-				"AJ {p=AJ {p=TD{parent}, c=AJ {p=AJ {p=TD{child1}, c=AV{TD{child11}}}, c=AV{TD{child12}}}}, c=AV{TD{child2}}}");
+				"AJ {p=AJ {p=TD{customer}, c=AJ {p=AJ {p=TD{address}, c=AV{TD{city}}}, c=AV{TD{type}}}}, c=AV{TD{order}}}");
 
 	}
 
