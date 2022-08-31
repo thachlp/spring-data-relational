@@ -71,10 +71,13 @@ public class AnalyticStructureBuilderTests {
 				.addTable("parent", td -> td.withId("parentId").withColumns("parent-name", "parent-lastname"))
 				.addChildTo("parent", "child", td -> td.withColumns("child-name", "child-lastname"));
 
-		assertThat(builder).hasExactColumns("parentId", "parent-name", "parent-lastname", //
+		assertThat(builder).hasExactColumns( //
+				"parentId", "parent-name", "parent-lastname", //
 				"child-name", "child-lastname", //
-				fk("parentId"), max("parentId", fk("parentId"))) //
-				.hasId("parentId");
+				fk("parentId"), max("parentId", fk("parentId")) //
+				).hasId("parentId")
+				.hasStructure(aj (td("parent"), av(td("child"))));
+
 
 		AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //

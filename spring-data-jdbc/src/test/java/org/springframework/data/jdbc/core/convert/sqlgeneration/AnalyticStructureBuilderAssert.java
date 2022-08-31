@@ -60,7 +60,18 @@ public class AnalyticStructureBuilderAssert<T, C>
 		return this;
 	}
 
-	AnalyticStructureBuilderAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
+	AnalyticStructureBuilderAssert<T, C> hasStructure(StructurePattern pattern) {
+
+
+		final AnalyticStructureBuilder<T, C>.Select select = actual.getSelect();
+		assertThat(select).matches(pattern::matches);
+
+		return this;
+	}
+
+
+
+	private AnalyticStructureBuilderAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
 
 		List<? extends AnalyticStructureBuilder.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
 
@@ -89,6 +100,8 @@ public class AnalyticStructureBuilderAssert<T, C>
 		throw Failures.instance().failure(info, ColumnsShouldContainExactly
 				.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
 	}
+
+
 
 	static Object extractColumn(Object c) {
 
