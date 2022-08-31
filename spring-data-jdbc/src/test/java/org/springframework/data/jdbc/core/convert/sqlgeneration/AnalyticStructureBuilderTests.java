@@ -133,7 +133,8 @@ public class AnalyticStructureBuilderTests {
 	}
 
 	@Nested
-	@Disabled // these tests are currently only scetches. the asserts need to be reviewed, and the necessary code for them implemented.
+	@Disabled // these tests are currently only scetches. the asserts need to be reviewed, and the necessary code for them
+						// implemented.
 	class TableWithChainOfChildren {
 
 		@Test
@@ -248,7 +249,9 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructureBuilder.Select select = builder.getSelect();
 
-			assertThat(builder).hasExactColumns("grannyId", "grannyName", fk("grannyId"), "parentName", "childName"); // TODO: Max column?
+			assertThat(builder).hasExactColumns("grannyId", "grannyName", fk("grannyId"), "parentName", "childName"); // TODO:
+																																																								// Max
+																																																								// column?
 			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo("grannyId");
 
 			assertThat(select.toString()).isEqualTo("AJ {p=TD{granny}, c=AJ {p=TD{parent}, c=AV{TD{child}}}}");
@@ -267,18 +270,9 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(builder).hasExactColumns(
-				"customerId", "customerName",
-				fk("customerId"), "addressId",
-				"addressName",
-				max("addressId", fk("addressId")),
-				fk("addressId"),
-				"cityName",
-				fk("customerId"),
-				"orderId", "orderName",
-				max("addressId", fk("addressId")),
-				fk("addressId"),
-				"typeName"// TODO: Why no max columns for some FK here?
+		assertThat(builder).hasExactColumns("customerId", "customerName", fk("customerId"), "addressId", "addressName",
+				max("addressId", fk("addressId")), fk("addressId"), "cityName", fk("customerId"), "orderId", "orderName",
+				max("addressId", fk("addressId")), fk("addressId"), "typeName"// TODO: Why no max columns for some FK here?
 		).hasId("customerId");
 
 		assertThat(select.toString()).isEqualTo(
@@ -294,7 +288,7 @@ public class AnalyticStructureBuilderTests {
 		builder.addChildTo("customer", "keyAccount", td -> td.withId("keyAccountId").withColumns("keyAccountName"));
 		builder.addChildTo("keyAccount", "assistant", td -> td.withColumns("assistantName"));
 		builder.addChildTo("customer", "order", td -> td.withId("orderId").withColumns("orderName"));
-		builder.addChildTo("keyAccount", "office", td -> td.withColumns("officename"));
+		builder.addChildTo("keyAccount", "office", td -> td.withColumns("officeName"));
 		builder.addChildTo("order", "item", td -> td.withId("itemId").withColumns("itemName"));
 
 		assertThat(builder.getSelect().toString()).isEqualTo(
@@ -305,26 +299,31 @@ public class AnalyticStructureBuilderTests {
 	@Test
 	void complexHierarchy() {
 
-		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-				.addTable("parent", td -> td.withId(0).withColumns(1, 2));
-		builder.addChildTo("parent", "child1", td -> td.withId(10).withColumns(101, 102));
-		builder.addChildTo("child1", "child11", td -> td.withColumns(111, 112));
-		builder.addChildTo("parent", "child2", td -> td.withId(20).withColumns(201, 202));
-		builder.addChildTo("child1", "child12", td -> td.withId(12).withColumns(121, 122));
-		builder.addChildTo("child2", "child21", td -> td.withColumns(211, 212));
-		builder.addChildTo("child2", "child22", td -> td.withColumns(221, 222));
-		builder.addChildTo("child12", "child121", td -> td.withColumns(1211, 1212));
+		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+				.addTable("customer", td -> td.withId("customerId").withColumns("customerName"));
+		builder.addChildTo("customer", "keyAccount", td -> td.withId("keyAccountId").withColumns("keyAccountName"));
+		builder.addChildTo("keyAccount", "assistant", td -> td.withColumns("assistantName"));
+		builder.addChildTo("customer", "order", td -> td.withId("orderId").withColumns("orderName"));
+		builder.addChildTo("keyAccount", "office", td -> td.withId("officeId").withColumns("officeName"));
+		builder.addChildTo("order", "item", td -> td.withColumns("itemName"));
+		builder.addChildTo("order", "shipment", td -> td.withColumns("shipmentName"));
+		builder.addChildTo("office", "room", td -> td.withColumns("roomNumber"));
 
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
-		assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn).containsExactlyInAnyOrder(
-				0, 1, 2, "FK(0)", 10, 101, 102, "FK(10)", 111, 112, "FK(0)", 20, 201, 202, "MAX(10, FK(10))", "FK(10)", 121,
-				122, "MAX(20, FK(20))", "FK(20)", 211, 212, "MAX(20, FK(20))", "FK(20)", 221, 222, 12, "MAX(12, FK(12))",
-				"FK(12)", 1211, 1212);
-		assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+		assertThat(builder).hasExactColumns( //
+				"customerId", "customerName", //
+				fk("customerId"), "keyAccountId", "keyAccountName", //
+				fk("keyAccountId"), "assistantName", //
+				fk("customerId"), "orderId", "orderName", //
+				max("keyAccountId", fk("keyAccountId")), fk("keyAccountId"), "officeName", //
+				max("orderId", fk("orderId")), fk("orderId"), "itemName", //
+				max("orderId", fk("orderId")), fk("orderId"), "shipmentName", "officeId", //
+				max("officeId", fk("officeId")), fk("officeId"), "roomNumber" //
+		).hasId("customerId");
 
 		assertThat(select.toString()).isEqualTo(
-				"AJ {p=AJ {p=TD{parent}, c=AJ {p=AJ {p=TD{child1}, c=AV{TD{child11}}}, c=AJ {p=TD{child12}, c=AV{TD{child121}}}}}, c=AJ {p=AJ {p=TD{child2}, c=AV{TD{child21}}}, c=AV{TD{child22}}}}");
+				"AJ {p=AJ {p=TD{customer}, c=AJ {p=AJ {p=TD{keyAccount}, c=AV{TD{assistant}}}, c=AJ {p=TD{office}, c=AV{TD{room}}}}}, c=AJ {p=AJ {p=TD{order}, c=AV{TD{item}}}, c=AV{TD{shipment}}}}");
 
 	}
 
