@@ -289,16 +289,16 @@ public class AnalyticStructureBuilderTests {
 	@Test
 	void mediumComplexHierarchy2() {
 
-		AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-				.addTable("parent", td -> td.withId(0).withColumns(1, 2));
-		builder.addChildTo("parent", "child1", td -> td.withId(10).withColumns(101, 102));
-		builder.addChildTo("child1", "child11", td -> td.withColumns(111, 112));
-		builder.addChildTo("parent", "child2", td -> td.withId(20).withColumns(201, 202));
-		builder.addChildTo("child1", "child12", td -> td.withColumns(121, 122));
-		builder.addChildTo("child2", "child21", td -> td.withId(21).withColumns(211, 212));
+		AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+				.addTable("customer", td -> td.withId("customerId").withColumns("customerName"));
+		builder.addChildTo("customer", "keyAccount", td -> td.withId("keyAccountId").withColumns("keyAccountName"));
+		builder.addChildTo("keyAccount", "assistant", td -> td.withColumns("assistantName"));
+		builder.addChildTo("customer", "order", td -> td.withId("orderId").withColumns("orderName"));
+		builder.addChildTo("keyAccount", "office", td -> td.withColumns("officename"));
+		builder.addChildTo("order", "item", td -> td.withId("itemId").withColumns("itemName"));
 
 		assertThat(builder.getSelect().toString()).isEqualTo(
-				"AJ {p=AJ {p=TD{parent}, c=AJ {p=AJ {p=TD{child1}, c=AV{TD{child11}}}, c=AV{TD{child12}}}}, c=AJ {p=TD{child2}, c=AV{TD{child21}}}}");
+				"AJ {p=AJ {p=TD{customer}, c=AJ {p=AJ {p=TD{keyAccount}, c=AV{TD{assistant}}}, c=AV{TD{office}}}}, c=AJ {p=TD{order}, c=AV{TD{item}}}}");
 
 	}
 
