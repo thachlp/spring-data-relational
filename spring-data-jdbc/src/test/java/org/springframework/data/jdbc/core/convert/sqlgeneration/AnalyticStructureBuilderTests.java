@@ -16,8 +16,11 @@
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticAssertions.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticJoinPattern.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticViewPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.ForeignKeyPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.MaxPattern.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.TableDefinitionPattern.*;
 
 import java.util.Collections;
 import java.util.HashSet;

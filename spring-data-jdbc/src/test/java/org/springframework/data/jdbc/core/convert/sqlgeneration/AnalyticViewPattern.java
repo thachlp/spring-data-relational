@@ -15,17 +15,20 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 * limitations under the License.
 */
 
-public record AnalyticJoinPattern(StructurePattern left, StructurePattern right) implements StructurePattern {
+import java.util.List;
 
-	static AnalyticJoinPattern aj(StructurePattern left, StructurePattern right) {
-		return new AnalyticJoinPattern(left, right);
+public record AnalyticViewPattern(StructurePattern content) implements StructurePattern {
+
+	static AnalyticViewPattern av(StructurePattern content) {
+		return new AnalyticViewPattern(content);
 	}
 
 	@Override
 	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select) {
 
-		if (select instanceof AnalyticStructureBuilder.AnalyticJoin join) {
-			return left().matches(join.getParent()) && right().matches(join.getChild());
+		if (select instanceof AnalyticStructureBuilder.AnalyticView view) {
+			final List froms = view.getFroms();
+			return froms.size() == 1 && content.matches((AnalyticStructureBuilder<?,?>.Select) froms.get(0));
 		}
 		return false;
 	}
