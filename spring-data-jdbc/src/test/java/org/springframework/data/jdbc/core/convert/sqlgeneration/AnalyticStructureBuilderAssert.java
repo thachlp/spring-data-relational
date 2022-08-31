@@ -15,6 +15,8 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
+import static org.assertj.core.api.Assertions.*;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,8 +26,7 @@ import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.error.BasicErrorMessageFactory;
 import org.assertj.core.internal.Failures;
 import org.assertj.core.internal.StandardComparisonStrategy;
-
-import static org.assertj.core.api.Assertions.*;
+import org.springframework.lang.Nullable;
 
 /**
  * Assertions for {@link AnalyticStructureBuilder}.
@@ -54,7 +55,8 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 	AnalyticStructureBuilderAssert<T, C> hasId(C name) {
 
-		assertThat(actual).matches(a -> new BasePattern(name).matches(a.getId()),"has Id " + name + ", but was " + actual.getId());
+		assertThat(actual).matches(a -> new BasePattern(name).matches(a.getId()),
+				"has Id " + name + ", but was " + actual.getId());
 		return this;
 	}
 
@@ -103,6 +105,20 @@ public class AnalyticStructureBuilderAssert<T, C>
 		} else {
 			return "unknown";
 		}
+	}
+
+	@Nullable
+	static <T extends AnalyticStructureBuilder<?, ?>.AnalyticColumn> T extract(Class<T> type,
+			AnalyticStructureBuilder<?, ?>.AnalyticColumn column) {
+
+		if (type.isInstance(column)) {
+			return type.cast(column);
+		}
+
+		if (column instanceof AnalyticStructureBuilder.DerivedColumn derivedColumn) {
+			return extract(type, derivedColumn.getBase());
+		}
+		return null;
 	}
 
 	private static class ColumnsShouldContainExactly extends BasicErrorMessageFactory {

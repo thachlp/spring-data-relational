@@ -18,7 +18,7 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 import java.util.stream.Stream;
 
 public interface Pattern {
-	boolean matches(AnalyticStructureBuilder.AnalyticColumn other);
+	boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn other);
 
 	String render();
 }

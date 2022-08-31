@@ -24,7 +24,7 @@ record ForeignKeyPattern<C>(C name) implements Pattern{
 	}
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder.AnalyticColumn other) {
+	public boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn other) {
 		return extractForeignKey(other) != null && name.equals(other.getColumn());
 	}
 
@@ -34,14 +34,7 @@ record ForeignKeyPattern<C>(C name) implements Pattern{
 	}
 
 	@Nullable
-	static AnalyticStructureBuilder.ForeignKey extractForeignKey(AnalyticStructureBuilder.AnalyticColumn column) {
-		if (column instanceof AnalyticStructureBuilder.ForeignKey foreignKey) {
-			return foreignKey;
-		}
-
-		if (column instanceof AnalyticStructureBuilder.DerivedColumn derivedColumn) {
-			return extractForeignKey(derivedColumn.getBase());
-		}
-		return null;
+	static AnalyticStructureBuilder<?,?>.ForeignKey extractForeignKey(AnalyticStructureBuilder<?,?>.AnalyticColumn column) {
+		return AnalyticStructureBuilderAssert.extract(AnalyticStructureBuilder.ForeignKey.class, column);
 	}
 }
