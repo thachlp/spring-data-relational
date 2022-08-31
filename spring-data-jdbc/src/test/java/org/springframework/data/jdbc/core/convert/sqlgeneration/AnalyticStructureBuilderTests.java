@@ -75,7 +75,7 @@ public class AnalyticStructureBuilderTests {
 				fk("parentId"), max("parentId", fk("parentId"))) //
 				.hasId("parentId");
 
-		AnalyticStructureBuilder.Select select = builder.getSelect();
+		AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 		assertThat(stringify(select)).containsExactlyInAnyOrder( //
 				"AJ -> TD(parent)", //
 				"AJ -> AV -> TD(child)");
@@ -111,7 +111,7 @@ public class AnalyticStructureBuilderTests {
 				.addChildTo("parent", "child1", td -> td.withColumns("childName", "childLastname"))
 				.addChildTo("parent", "child2", td -> td.withColumns("siblingName", "siblingLastName"));
 
-		AnalyticStructureBuilder.Select select = builder.getSelect();
+		AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 
 		assertThat(builder) //
 				.hasExactColumns("parentId", "parentName", "parentLastname", //
@@ -143,7 +143,7 @@ public class AnalyticStructureBuilderTests {
 					.addChildTo("granny", "parent", td -> td.withId("parentId").withColumns("parentName"))
 					.addChildTo("parent", "child", td -> td.withColumns("childName"));
 
-			AnalyticStructureBuilder.Select select = builder.getSelect();
+			AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 
 			assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
 					.containsExactlyInAnyOrder("grannyId", "grannyName", max("grannyId", fk("grannyId")), fk("grannyId"),
@@ -176,12 +176,17 @@ public class AnalyticStructureBuilderTests {
 							td -> td.withId("parentId").withKeyColumn("parentKey").withColumns("parentName"))
 					.addChildTo("parent", "child", td -> td.withColumns("childName"));
 
-			AnalyticStructureBuilder.Select select = builder.getSelect();
+			AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 
-			assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-					.containsExactlyInAnyOrder("grannyId", "grannyName", max("grannyId", fk("grannyId")), fk("grannyId"),
-							"parentKey", "parentName", max("parentId", fk("parentId")), fk("parentId"), "childName");
-			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+			assertThat(builder).hasExactColumns( //
+					"grannyId", "grannyName", //
+					max("grannyId", fk("grannyId")), //
+					fk("grannyId"), //
+					"parentKey", "parentName", //
+					max("parentId", fk("parentId")), //
+					fk("parentId"), //
+					"childName" //
+			).hasId("grannyId");
 
 			assertThat(select.toString()).isEqualTo("AJ {p=TD{granny}, c=AJ {p=TD{parent}, c=AV{TD{child}}}}");
 		}
@@ -189,19 +194,27 @@ public class AnalyticStructureBuilderTests {
 		@Test
 		void middleChildWithKeyHasNoId() {
 
-			AnalyticStructureBuilder<String, Integer> builder = new AnalyticStructureBuilder<String, Integer>()
-					.addTable("parent", td -> td.withId(0).withColumns(1, 2))
-					.addChildTo("parent", "child1", td -> td.withColumns(11, 12))
-					.addChildTo("child1", "child2", td -> td.withColumns(21, 22));
+			AnalyticStructureBuilder<String, String> builder = new AnalyticStructureBuilder<String, String>()
+					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
+					.addChildTo("granny", "parent", td -> td.withColumns("parentName").withKeyColumn("parentKey"))
+					.addChildTo("parent", "child", td -> td.withColumns("childName"));
 
 			AnalyticStructureBuilder.Select select = builder.getSelect();
 
-			assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-					.containsExactlyInAnyOrder(0, 1, 2, "MAX(0, FK(0)", "FK(0)", -10, 11, 12, "MAX(FK(0), FK(FK(0))", "FK(FK(0))",
-							"MAX(-10, FK(-10)", "FK(-10)", 21, 22);
-			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
+			assertThat(builder).hasExactColumns( //
+					"grannyId", "grannyName", //
+					max("grannyId", fk("grannyId")), //
+					fk("grannyId"), //
+					"parentKey", //
+					"parentName", //
+					max(fk("grannyId"), fk(fk("grannyId"))), //
+					fk(fk("grannyId")), //
+					max("parentKey", fk("parentKey")), //
+					fk("parentKey"), //
+					"childName" //
+			).hasId("grannyId");
 
-			assertThat(select.toString()).isEqualTo("AJ {p=TD{parent}, c=AJ {p=TD{child1}, c=AV{TD{child2}}}}");
+			assertThat(select.toString()).isEqualTo("AJ {p=TD{granny}, c=AJ {p=TD{parent}, c=AV{TD{child}}}}");
 		}
 
 		@Test
