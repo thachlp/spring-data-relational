@@ -63,7 +63,8 @@ public class AnalyticStructureBuilderTests {
 				td -> td.withId("person_id").withColumns("name", "lastname"));
 
 		assertThat(builder).hasExactColumns("person_id", "name", "lastname") //
-				.hasId("person_id");
+				.hasId("person_id") //
+				.hasStructure(td("person"));
 
 	}
 
@@ -78,7 +79,8 @@ public class AnalyticStructureBuilderTests {
 				"parentId", "parent-name", "parent-lastname", //
 				"child-name", "child-lastname", //
 				fk("parentId"), max("parentId", fk("parentId")) //
-		).hasId("parentId").hasStructure(aj(td("parent"), av(td("child"))));
+		).hasId("parentId") //
+				.hasStructure(aj(td("parent"), av(td("child"))));
 	}
 
 	@Test
@@ -94,13 +96,8 @@ public class AnalyticStructureBuilderTests {
 								fk("parentId")),
 						fk("parentId"), //
 						"childKey", "childName", "childLastname") //
-				.hasId("parentId");
-
-		assertThat(stringify(builder.getSelect())).containsExactlyInAnyOrder( //
-				"AJ -> TD(parent)", //
-				"AJ -> AV -> TD(child)");
-
-		assertThatSelect(builder.getSelect()).joins("parent", "child").on("parentId");
+				.hasId("parentId") //
+				.hasStructure(aj(td("parent"), av(td("child"))));
 	}
 
 	@Test
@@ -122,13 +119,8 @@ public class AnalyticStructureBuilderTests {
 						fk("parentId"), //
 						"siblingName", //
 						"siblingLastName")
-				.hasId("parentId");
-
-		assertThat(stringify(select)).containsExactlyInAnyOrder( //
-				"AJ -> AJ -> TD(parent)", //
-				"AJ -> AJ -> AV -> TD(child1)", //
-				"AJ -> AV -> TD(child2)");
-
+				.hasId("parentId") //
+				.hasStructure(aj(aj(td("parent"), av(td("child1"))), av(td("child2"))));
 	}
 
 	@Nested
@@ -408,68 +400,4 @@ public class AnalyticStructureBuilderTests {
 		}
 	}
 
-	private static SelectAssert assertThatSelect(AnalyticStructureBuilder.Select select) {
-		return new SelectAssert(select);
-	}
-
-	private static class SelectAssert {
-		private final AnalyticStructureBuilder.Select select;
-
-		public SelectAssert(AnalyticStructureBuilder.Select select) {
-
-			this.select = select;
-		}
-
-		JoinAssert joins(String parent, String child) {
-
-			AnalyticStructureBuilder.AnalyticJoin join = findJoin(select, parent, child);
-			assertThat(join).describedAs("No Join found for %s and %s", parent, child).isNotNull();
-			return new JoinAssert(join);
-		}
-
-		@Nullable
-		private AnalyticStructureBuilder.AnalyticJoin findJoin(AnalyticStructureBuilder.Select select, String parent,
-				String child) {
-
-			if (!(select instanceof AnalyticStructureBuilder.AnalyticJoin join)) {
-				return null;
-			}
-
-			if (parent.equals(unwrap(join.getParent())) && child.equals(unwrap(join.getChild()))) {
-				return join;
-			}
-
-			AnalyticStructureBuilder.AnalyticJoin parentSearchResult = findJoin(join.getParent(), parent, child);
-			if (parentSearchResult != null) {
-				return parentSearchResult;
-			}
-			return findJoin(join.getChild(), parent, child);
-		}
-
-		private Object unwrap(AnalyticStructureBuilder.Select node) {
-
-			if (node instanceof AnalyticStructureBuilder.AnalyticJoin) {
-				return null;
-			}
-
-			if (node instanceof AnalyticStructureBuilder.TableDefinition td) {
-				return td.getTable();
-			}
-			return unwrap((AnalyticStructureBuilder.Select) node.getParent());
-		}
-	}
-
-	private static class JoinAssert {
-		private final AnalyticStructureBuilder.AnalyticJoin join;
-
-		public JoinAssert(AnalyticStructureBuilder.AnalyticJoin join) {
-
-			this.join = join;
-		}
-
-		void on(Object idOfParent) {
-			assertThat(join.getJoinCondition()).extracting(jc -> jc.getParent().getColumn()).isEqualTo(idOfParent);
-
-		}
-	}
 }
