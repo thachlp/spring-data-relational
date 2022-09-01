@@ -28,8 +28,13 @@ public record AnalyticViewPattern(StructurePattern content) implements Structure
 
 		if (select instanceof AnalyticStructureBuilder.AnalyticView view) {
 			final List froms = view.getFroms();
-			return froms.size() == 1 && content.matches((AnalyticStructureBuilder<?,?>.Select) froms.get(0));
+			return froms.size() == 1 && content.matches((AnalyticStructureBuilder<?, ?>.Select) froms.get(0));
 		}
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "AV{" + content + '}';
 	}
 }

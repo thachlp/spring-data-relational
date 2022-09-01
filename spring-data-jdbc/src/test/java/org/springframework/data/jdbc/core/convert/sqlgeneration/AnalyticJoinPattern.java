@@ -29,4 +29,9 @@ public record AnalyticJoinPattern(StructurePattern left, StructurePattern right)
 		}
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "AJ{" + left + ", " + right + '}';
+	}
 }

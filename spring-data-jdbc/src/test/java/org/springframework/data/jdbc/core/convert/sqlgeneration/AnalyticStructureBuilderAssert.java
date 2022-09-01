@@ -62,24 +62,21 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 	AnalyticStructureBuilderAssert<T, C> hasStructure(StructurePattern pattern) {
 
-
-		final AnalyticStructureBuilder<T, C>.Select select = actual.getSelect();
-		assertThat(select).matches(pattern::matches);
+		AnalyticStructureBuilder<T, C>.Select select = actual.getSelect();
+		assertThat(select).matches(pattern::matches, "\n\t" + pattern);
 
 		return this;
 	}
 
-
-
 	private AnalyticStructureBuilderAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
 
-		List<? extends AnalyticStructureBuilder.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
+		List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
 
 		List<Pattern> notFound = new ArrayList<>();
 		for (Pattern pattern : patterns) {
 
 			boolean found = false;
-			for (AnalyticStructureBuilder.AnalyticColumn actualColumn : availableColumns) {
+			for (AnalyticStructureBuilder<?,?>.AnalyticColumn actualColumn : availableColumns) {
 
 				if (pattern.matches(actualColumn)) {
 					found = true;
@@ -100,8 +97,6 @@ public class AnalyticStructureBuilderAssert<T, C>
 		throw Failures.instance().failure(info, ColumnsShouldContainExactly
 				.columnsShouldContainExactly(actual.getSelect().getColumns(), patterns, notFound, availableColumns));
 	}
-
-
 
 	static Object extractColumn(Object c) {
 
@@ -137,8 +132,8 @@ public class AnalyticStructureBuilderAssert<T, C>
 	private static class ColumnsShouldContainExactly extends BasicErrorMessageFactory {
 
 		static ColumnsShouldContainExactly columnsShouldContainExactly(
-				List<? extends AnalyticStructureBuilder.AnalyticColumn> actualColumns, Pattern[] expected,
-				List<Pattern> notFound, List<? extends AnalyticStructureBuilder.AnalyticColumn> notExpected) {
+				List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> actualColumns, Pattern[] expected,
+				List<Pattern> notFound, List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> notExpected) {
 			String actualColumnsDescription = actualColumns.stream().map(ColumnsShouldContainExactly::toString)
 					.collect(Collectors.joining(", "));
 

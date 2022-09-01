@@ -78,14 +78,7 @@ public class AnalyticStructureBuilderTests {
 				"parentId", "parent-name", "parent-lastname", //
 				"child-name", "child-lastname", //
 				fk("parentId"), max("parentId", fk("parentId")) //
-				).hasId("parentId")
-				.hasStructure(aj (td("parent"), av(td("child"))));
-
-
-		AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
-		assertThat(stringify(select)).containsExactlyInAnyOrder( //
-				"AJ -> TD(parent)", //
-				"AJ -> AV -> TD(child)");
+		).hasId("parentId").hasStructure(aj(td("parent"), av(td("child"))));
 	}
 
 	@Test
@@ -274,15 +267,25 @@ public class AnalyticStructureBuilderTests {
 		builder.addChildTo("customer", "order", td -> td.withId("orderId").withColumns("orderName"));
 		builder.addChildTo("address", "type", td -> td.withColumns("typeName"));
 
-		AnalyticStructureBuilder.Select select = builder.getSelect();
-
 		assertThat(builder).hasExactColumns("customerId", "customerName", fk("customerId"), "addressId", "addressName",
 				max("addressId", fk("addressId")), fk("addressId"), "cityName", fk("customerId"), "orderId", "orderName",
 				max("addressId", fk("addressId")), fk("addressId"), "typeName"// TODO: Why no max columns for some FK here?
-		).hasId("customerId");
-
-		assertThat(select.toString()).isEqualTo(
-				"AJ {p=AJ {p=TD{customer}, c=AJ {p=AJ {p=TD{address}, c=AV{TD{city}}}, c=AV{TD{type}}}}, c=AV{TD{order}}}");
+		).hasId("customerId") //
+				.hasStructure( //
+						aj( //
+								aj( //
+										td("customer"), //
+										aj( //
+												aj( //
+														td("address"), //
+														av(td("city")) //
+												), //
+												av(td("type")) //
+										) //
+								), //
+								av(td("order")) //
+						) //
+				);
 
 	}
 
@@ -297,8 +300,24 @@ public class AnalyticStructureBuilderTests {
 		builder.addChildTo("keyAccount", "office", td -> td.withColumns("officeName"));
 		builder.addChildTo("order", "item", td -> td.withId("itemId").withColumns("itemName"));
 
-		assertThat(builder.getSelect().toString()).isEqualTo(
-				"AJ {p=AJ {p=TD{customer}, c=AJ {p=AJ {p=TD{keyAccount}, c=AV{TD{assistant}}}, c=AV{TD{office}}}}, c=AJ {p=TD{order}, c=AV{TD{item}}}}");
+		assertThat(builder).hasStructure( //
+				aj( //
+						aj( //
+								td("customer"), //
+								aj( //
+										aj( //
+												td("keyAccount"), //
+												av(td("assistant")) //
+										), //
+										av(td("office")) //
+								) //
+						), //
+						aj( //
+								td("order"), //
+								av(td("item")) //
+						) //
+				) //
+		);
 
 	}
 
@@ -326,10 +345,31 @@ public class AnalyticStructureBuilderTests {
 				max("orderId", fk("orderId")), fk("orderId"), "itemName", //
 				max("orderId", fk("orderId")), fk("orderId"), "shipmentName", "officeId", //
 				max("officeId", fk("officeId")), fk("officeId"), "roomNumber" //
-		).hasId("customerId");
-
-		assertThat(select.toString()).isEqualTo(
-				"AJ {p=AJ {p=TD{customer}, c=AJ {p=AJ {p=TD{keyAccount}, c=AV{TD{assistant}}}, c=AJ {p=TD{office}, c=AV{TD{room}}}}}, c=AJ {p=AJ {p=TD{order}, c=AV{TD{item}}}, c=AV{TD{shipment}}}}");
+		).hasId("customerId") //
+				.hasStructure( //
+						aj( //
+								aj( //
+										td("customer"), //
+										aj( //
+												aj( //
+														td("keyAccount"), //
+														av(td("assistant")) //
+												), //
+												aj( //
+														td("office"), //
+														av(td("room")) //
+												) //
+										) //
+								), //
+								aj( //
+										aj( //
+												td("order"), //
+												av(td("item")) //
+										), //
+										av(td("shipment")) //
+								) //
+						) //
+				);
 
 	}
 

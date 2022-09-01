@@ -347,7 +347,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		@Override
 		public String toString() {
-			return "AJ {" + "p=" + parent + ", c=" + child + '}';
+			return "AJ {" +  parent + ", " + child + '}';
 		}
 
 		JoinCondition getJoinCondition() {

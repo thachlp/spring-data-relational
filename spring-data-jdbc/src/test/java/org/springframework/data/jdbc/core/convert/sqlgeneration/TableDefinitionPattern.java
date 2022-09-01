@@ -29,4 +29,11 @@ public record TableDefinitionPattern(Object name) implements StructurePattern {
 		}
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "TD{" +
+				 name +
+				'}';
+	}
 }
