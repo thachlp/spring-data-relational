@@ -25,7 +25,9 @@ record ForeignKeyPattern<C>(C name) implements Pattern{
 
 	@Override
 	public boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn other) {
-		return extractForeignKey(other) != null && name.equals(other.getColumn());
+
+		AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey = extractForeignKey(other);
+		return foreignKey != null && name.equals(foreignKey.getColumn());
 	}
 
 	@Override
