@@ -18,8 +18,8 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 record BasePattern(Object name) implements Pattern {
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder.AnalyticColumn other) {
-		return name.equals(other.getColumn());
+	public boolean matches(AnalyticStructureBuilder.AnalyticColumn actualColumn) {
+		return name.equals(actualColumn.getColumn());
 	}
 
 	@Override

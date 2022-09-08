@@ -16,18 +16,63 @@
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
-record ForeignKeyPattern<C>(C name) implements Pattern{
+import java.util.Objects;
 
-	public static <C> ForeignKeyPattern<C> fk(C name){
-		return new ForeignKeyPattern(name);
+record ForeignKeyPattern<T, C>(T table, C name) implements Pattern{
+
+	public static <C> ForeignKeyPattern<?, C> fk(C name){
+		return new ForeignKeyPattern<>(null, name);
+	}
+
+	public static <T, C> ForeignKeyPattern<T, C> fk(T table, C column){
+		return new ForeignKeyPattern<>(table, column);
 	}
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn other) {
+	public boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn actualColumn) {
 
-		AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey = extractForeignKey(other);
-		return foreignKey != null && name.equals(foreignKey.getColumn());
+		AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey = extractForeignKey(actualColumn);
+				return foreignKey != null && name.equals(foreignKey.getColumn());
+	}
+
+	@Override
+	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select, AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
+
+		AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey = extractForeignKey(actualColumn);
+		if (foreignKey == null || !name.equals(foreignKey.getColumn())){
+			return false;
+		}
+
+		if (table == null) {
+			return true;
+		}
+
+		AnalyticStructureBuilder<?, ?>.Select fkOwner = foreignKeyOwner(select, foreignKey);
+
+		Assert.notNull(fkOwner, "the Foreign Key Owner should never be null");
+
+		return fkOwner.getParent().equals(table);
+	}
+
+	@Nullable
+	private AnalyticStructureBuilder<?,?>.Select foreignKeyOwner(AnalyticStructureBuilder<?, ?>.Select select, AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey) {
+
+		if (select instanceof AnalyticStructureBuilder<?, ?>.TableDefinition td) {
+			if (td.getColumns().contains(foreignKey)) {
+				return td;
+			}
+		} else if (select instanceof AnalyticStructureBuilder<?, ?>.AnalyticView av) {
+			if (av.getForeignKey().equals(foreignKey)) {
+				return av;
+			}
+		}
+
+		return select.getFroms().stream()
+				.map(s -> foreignKeyOwner(s, foreignKey))
+				.filter(Objects::nonNull).findFirst()
+				.orElse(null);
 	}
 
 	@Override
@@ -39,4 +84,5 @@ record ForeignKeyPattern<C>(C name) implements Pattern{
 	static AnalyticStructureBuilder<?,?>.ForeignKey extractForeignKey(AnalyticStructureBuilder<?,?>.AnalyticColumn column) {
 		return AnalyticStructureBuilderAssert.extract(AnalyticStructureBuilder.ForeignKey.class, column);
 	}
+
 }

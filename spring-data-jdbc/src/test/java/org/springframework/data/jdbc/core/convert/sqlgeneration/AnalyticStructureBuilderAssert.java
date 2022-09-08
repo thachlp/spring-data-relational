@@ -78,7 +78,7 @@ public class AnalyticStructureBuilderAssert<T, C>
 			boolean found = false;
 			for (AnalyticStructureBuilder<?,?>.AnalyticColumn actualColumn : availableColumns) {
 
-				if (pattern.matches(actualColumn)) {
+				if (pattern.matches(actual.getSelect(), actualColumn)) {
 					found = true;
 					availableColumns.remove(actualColumn);
 					break;

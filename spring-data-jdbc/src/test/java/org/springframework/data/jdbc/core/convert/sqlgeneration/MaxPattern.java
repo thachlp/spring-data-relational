@@ -24,8 +24,8 @@ record MaxPattern<C> (Pattern left, Pattern right) implements Pattern {
 	}
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder<?, ?>.AnalyticColumn other) {
-		final AnalyticStructureBuilder<?, ?>.Max max = extractMax(other);
+	public boolean matches(AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
+		final AnalyticStructureBuilder<?, ?>.Max max = extractMax(actualColumn);
 		return max != null && left.matches(max.left) && right.matches(max.right);
 	}
 

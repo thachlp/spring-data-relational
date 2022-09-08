@@ -15,10 +15,14 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import java.util.stream.Stream;
-
 public interface Pattern {
-	boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn other);
+
+	default boolean matches(AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn){return false;}
 
 	String render();
+
+	default boolean matches(AnalyticStructureBuilder<?, ?>.Select select,
+			AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
+		return matches(actualColumn);
+	}
 }
