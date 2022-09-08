@@ -19,10 +19,6 @@ import org.springframework.lang.Nullable;
 
 record ForeignKeyPattern<T, C> (T table, C name) implements Pattern {
 
-	public static <C> ForeignKeyPattern<?, C> fk(C name) {
-		return new ForeignKeyPattern<>(null, name);
-	}
-
 	public static <T, C> ForeignKeyPattern<T, C> fk(T table, C column) {
 		return new ForeignKeyPattern<>(table, column);
 	}
