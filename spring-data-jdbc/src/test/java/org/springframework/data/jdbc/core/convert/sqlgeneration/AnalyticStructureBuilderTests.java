@@ -78,7 +78,7 @@ public class AnalyticStructureBuilderTests {
 		assertThat(builder).hasExactColumns( //
 				"parentId", "parent-name", "parent-lastname", //
 				"child-name", "child-lastname", //
-				fk("parentId"), max("parentId", fk("parentId")) //
+				fk("child","parentId"), max("parentId", fk("child", "parentId")) //
 		).hasId("parentId") //
 				.hasStructure(aj(td("parent"), av(td("child"))));
 	}

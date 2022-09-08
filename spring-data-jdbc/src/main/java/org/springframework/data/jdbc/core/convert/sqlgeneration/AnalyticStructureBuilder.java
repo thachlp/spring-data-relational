@@ -180,10 +180,10 @@ class AnalyticStructureBuilder<T, C> {
 	class TableDefinition extends SingleTableSelect {
 
 		private final T table;
-		private final AnalyticColumn id;
-		private final List<? extends AnalyticColumn> columns;
-		private final ForeignKey foreignKey;
-		private final BaseColumn keyColumn;
+		private AnalyticColumn id;
+		private List<? extends AnalyticColumn> columns;
+		private ForeignKey foreignKey;
+		private BaseColumn keyColumn;
 
 		TableDefinition(T table, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey,
 				BaseColumn keyColumn) {
@@ -202,21 +202,26 @@ class AnalyticStructureBuilder<T, C> {
 		}
 
 		TableDefinition withId(C id) {
-			return new TableDefinition(table, new BaseColumn(id), columns, foreignKey, keyColumn);
+
+			this.id = new BaseColumn(id);
+			return this;
 		}
 
 		TableDefinition withColumns(C... columns) {
 
-			return new TableDefinition(table, id, Arrays.stream(columns).map(BaseColumn::new).toList(), foreignKey,
-					keyColumn);
+			this.columns = Arrays.stream(columns).map(BaseColumn::new).toList();
+			return this;
 		}
 
 		TableDefinition withForeignKey(ForeignKey foreignKey) {
-			return new TableDefinition(table, id, columns, foreignKey, keyColumn);
+
+			this.foreignKey = foreignKey;
+			return this;
 		}
 
 		TableDefinition withKeyColumn(C key) {
-			return new TableDefinition(table, id, columns, foreignKey, new BaseColumn(key));
+			this.keyColumn = new BaseColumn(key);
+			return this;
 		}
 
 		@Override
@@ -347,7 +352,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		@Override
 		public String toString() {
-			return "AJ {" +  parent + ", " + child + '}';
+			return "AJ {" + parent + ", " + child + '}';
 		}
 
 		JoinCondition getJoinCondition() {
@@ -357,8 +362,7 @@ class AnalyticStructureBuilder<T, C> {
 	}
 
 	enum Multiplicity {
-		SINGLE,
-		MULTIPLE
+		SINGLE, MULTIPLE
 	}
 
 	class JoinCondition {
@@ -482,6 +486,11 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		C getColumn() {
 			return column.getColumn();
+		}
+
+		@Override
+		public String toString() {
+			return "FK(" + column + ')';
 		}
 	}
 
