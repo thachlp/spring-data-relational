@@ -259,17 +259,13 @@ public class AnalyticStructureBuilderTests {
 		builder.addChildTo("address", "type", td -> td.withColumns("typeName"));
 
 		assertThat(builder)
-				.hasExactColumns("customerId", "customerName", fk("address", "customerId"), "addressId", "addressName",
-						max("addressId", fk("city", "addressId")), fk("city", "addressId"), "cityName", fk("order", "customerId"),
-						"orderId", "orderName", max("addressId", fk("type", "addressId")), fk("type", "addressId"), "typeName"// TODO:
-																																																									// Why
-																																																									// no
-																																																									// max
-																																																									// columns
-																																																									// for
-																																																									// some
-																																																									// FK
-																																																									// here?
+				.hasExactColumns( //
+						"customerId", "customerName", //
+						fk("address", "customerId"), "addressId", "addressName", //
+						max("addressId", fk("city", "addressId")), fk("city", "addressId"), "cityName", //
+						fk("order", "customerId"),"orderId", "orderName", //
+						max("addressId", fk("type", "addressId")), fk("type", "addressId"), "typeName"//
+						// TODO:Why no max columns for some FK here?
 				).hasId("customerId") //
 				.hasStructure( //
 						aj( //
