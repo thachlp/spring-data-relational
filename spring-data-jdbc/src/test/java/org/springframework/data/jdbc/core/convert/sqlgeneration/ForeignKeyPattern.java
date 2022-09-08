@@ -15,11 +15,7 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import java.util.Objects;
-
-import org.jetbrains.annotations.NotNull;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 record ForeignKeyPattern<T, C> (T table, C name) implements Pattern {
 
@@ -44,42 +40,9 @@ record ForeignKeyPattern<T, C> (T table, C name) implements Pattern {
 			return true;
 		}
 
-		AnalyticStructureBuilder<?, ?>.Select fkOwner = foreignKeyOwner(select, foreignKey);
+		AnalyticStructureBuilder<?, ?>.TableDefinition fkOwner = foreignKey.getOwner();
 
-		Assert.notNull(fkOwner, "the Foreign Key Owner should never be null");
-
-		return unwrapParent(fkOwner).equals(table);
-	}
-
-	@NotNull
-	private Object unwrapParent(AnalyticStructureBuilder<?, ?>.Select select) {
-
-		Object parent = select.getParent();
-		if (parent instanceof AnalyticStructureBuilder.Select parentSelect) {
-			return unwrapParent(parentSelect);
-		}
-		return parent;
-	}
-
-	@Nullable
-	private AnalyticStructureBuilder<?, ?>.Select foreignKeyOwner(AnalyticStructureBuilder<?, ?>.Select select,
-			AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey) {
-
-		if (select instanceof AnalyticStructureBuilder<?, ?>.TableDefinition td) {
-			if (td.getColumns().contains(foreignKey)) {
-				return td;
-			}
-		} else if (select instanceof AnalyticStructureBuilder<?, ?>.AnalyticView av) {
-			if (av.getForeignKey().equals(foreignKey)) {
-				return av;
-			}
-		}
-
-		return select.getFroms().stream() //
-				.map(s -> foreignKeyOwner(s, foreignKey)) //
-				.filter(Objects::nonNull) //
-				.findFirst() //
-				.orElse(null);
+		return table.equals(fkOwner.getTable());
 	}
 
 	@Override
