@@ -216,6 +216,7 @@ class AnalyticStructureBuilder<T, C> {
 		TableDefinition withForeignKey(ForeignKey foreignKey) {
 
 			this.foreignKey = foreignKey;
+			this.foreignKey.setOwner(this);
 			return this;
 		}
 
@@ -478,6 +479,7 @@ class AnalyticStructureBuilder<T, C> {
 	class ForeignKey extends AnalyticColumn {
 
 		final AnalyticColumn column;
+		private TableDefinition owner;
 
 		ForeignKey(AnalyticColumn column) {
 			this.column = column;
@@ -491,6 +493,14 @@ class AnalyticStructureBuilder<T, C> {
 		@Override
 		public String toString() {
 			return "FK(" + column + ')';
+		}
+
+		void setOwner(TableDefinition owner) {
+			this.owner = owner;
+		}
+
+		TableDefinition getOwner() {
+			return owner;
 		}
 	}
 
