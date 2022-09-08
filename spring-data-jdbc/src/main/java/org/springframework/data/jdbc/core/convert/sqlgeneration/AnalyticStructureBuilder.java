@@ -490,17 +490,17 @@ class AnalyticStructureBuilder<T, C> {
 			return column.getColumn();
 		}
 
-		@Override
-		public String toString() {
-			return "FK(" + column + ')';
-		}
-
 		void setOwner(TableDefinition owner) {
 			this.owner = owner;
 		}
 
 		TableDefinition getOwner() {
 			return owner;
+		}
+
+		@Override
+		public String toString() {
+			return "FK(" +owner.getTable()+ ", " + column + ')';
 		}
 	}
 
