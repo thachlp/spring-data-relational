@@ -31,13 +31,6 @@ record ForeignKeyPattern<T, C>(T table, C name) implements Pattern{
 	}
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder<?,?>.AnalyticColumn actualColumn) {
-
-		AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey = extractForeignKey(actualColumn);
-				return foreignKey != null && name.equals(foreignKey.getColumn());
-	}
-
-	@Override
 	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select, AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
 
 		AnalyticStructureBuilder<?, ?>.ForeignKey foreignKey = extractForeignKey(actualColumn);

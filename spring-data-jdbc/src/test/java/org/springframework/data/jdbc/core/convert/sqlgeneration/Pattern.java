@@ -17,7 +17,8 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 public interface Pattern {
 
-	default boolean matches(AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn){return false;}
+	default boolean matches(AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn){
+		throw new UnsupportedOperationException("You need to implement one of the matches methods");}
 
 	String render();
 
