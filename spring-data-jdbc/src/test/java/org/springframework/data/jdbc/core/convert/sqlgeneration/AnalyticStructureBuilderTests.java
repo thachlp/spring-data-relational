@@ -30,7 +30,6 @@ import java.util.Set;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.lang.Nullable;
 
 public class AnalyticStructureBuilderTests {
 
@@ -78,7 +77,7 @@ public class AnalyticStructureBuilderTests {
 		assertThat(builder).hasExactColumns( //
 				"parentId", "parent-name", "parent-lastname", //
 				"child-name", "child-lastname", //
-				fk("child","parentId"), max("parentId", fk("child", "parentId")) //
+				fk("child", "parentId"), max("parentId", fk("child", "parentId")) //
 		).hasId("parentId") //
 				.hasStructure(aj(td("parent"), av(td("child"))));
 	}
@@ -93,8 +92,8 @@ public class AnalyticStructureBuilderTests {
 		assertThat(builder) //
 				.hasExactColumns("parentId", "parentName", "parentLastname", //
 						max("parentId", //
-								fk("child","parentId")),
-						fk("child","parentId"), //
+								fk("child", "parentId")),
+						fk("child", "parentId"), //
 						"childKey", "childName", "childLastname") //
 				.hasId("parentId") //
 				.hasStructure(aj(td("parent"), av(td("child"))));
@@ -112,11 +111,11 @@ public class AnalyticStructureBuilderTests {
 
 		assertThat(builder) //
 				.hasExactColumns("parentId", "parentName", "parentLastname", //
-						max("parentId", fk("child1","parentId")), //
-						fk("child1","parentId"), //
+						max("parentId", fk("child1", "parentId")), //
+						fk("child1", "parentId"), //
 						"childName", "childLastname", //
-						max("parentId", fk("child2","parentId")), //
-						fk("child2","parentId"), //
+						max("parentId", fk("child2", "parentId")), //
+						fk("child2", "parentId"), //
 						"siblingName", //
 						"siblingLastName")
 				.hasId("parentId") //
@@ -259,10 +258,19 @@ public class AnalyticStructureBuilderTests {
 		builder.addChildTo("customer", "order", td -> td.withId("orderId").withColumns("orderName"));
 		builder.addChildTo("address", "type", td -> td.withColumns("typeName"));
 
-		assertThat(builder).hasExactColumns("customerId", "customerName", fk("customerId"), "addressId", "addressName",
-				max("addressId", fk("addressId")), fk("addressId"), "cityName", fk("customerId"), "orderId", "orderName",
-				max("addressId", fk("addressId")), fk("addressId"), "typeName"// TODO: Why no max columns for some FK here?
-		).hasId("customerId") //
+		assertThat(builder)
+				.hasExactColumns("customerId", "customerName", fk("address", "customerId"), "addressId", "addressName",
+						max("addressId", fk("city", "addressId")), fk("city", "addressId"), "cityName", fk("order", "customerId"),
+						"orderId", "orderName", max("addressId", fk("type", "addressId")), fk("type", "addressId"), "typeName"// TODO:
+																																																									// Why
+																																																									// no
+																																																									// max
+																																																									// columns
+																																																									// for
+																																																									// some
+																																																									// FK
+																																																									// here?
+				).hasId("customerId") //
 				.hasStructure( //
 						aj( //
 								aj( //
@@ -329,14 +337,14 @@ public class AnalyticStructureBuilderTests {
 		AnalyticStructureBuilder.Select select = builder.getSelect();
 
 		assertThat(builder).hasExactColumns( //
-				"customerId", "customerName", //
-				fk("customerId"), "keyAccountId", "keyAccountName", //
-				fk("keyAccountId"), "assistantName", //
-				fk("customerId"), "orderId", "orderName", //
-				max("keyAccountId", fk("keyAccountId")), fk("keyAccountId"), "officeName", //
-				max("orderId", fk("orderId")), fk("orderId"), "itemName", //
-				max("orderId", fk("orderId")), fk("orderId"), "shipmentName", "officeId", //
-				max("officeId", fk("officeId")), fk("officeId"), "roomNumber" //
+				"customerId", "customerName", // TODO: maxes are missing
+				fk("keyAccount", "customerId"), "keyAccountId", "keyAccountName", //
+				fk("office", "keyAccountId"), "officeName", //
+				fk("order", "customerId"), "orderId", "orderName", //
+				max("keyAccountId", fk("assistant", "keyAccountId")), fk("assistant", "keyAccountId"), "assistantName", //
+				max("orderId", fk("item", "orderId")), fk("item", "orderId"), "itemName", //
+				max("orderId", fk("shipment", "orderId")), fk("shipment", "orderId"), "shipmentName", "officeId", //
+				max("officeId", fk("room", "officeId")), fk("room", "officeId"), "roomNumber" //
 		).hasId("customerId") //
 				.hasStructure( //
 						aj( //

@@ -500,7 +500,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		@Override
 		public String toString() {
-			return "FK(" +owner.getTable()+ ", " + column + ')';
+			return "FK(" + owner.getTable() + ", " + column + ')';
 		}
 	}
 
@@ -526,6 +526,11 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticColumn getRight() {
 			return right;
+		}
+
+		@Override
+		public String toString() {
+			return "Max(" + left + ", " + right + ')';
 		}
 	}
 

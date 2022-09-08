@@ -24,7 +24,8 @@ record MaxPattern<C> (Pattern left, Pattern right) implements Pattern {
 	}
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder<?,?>.Select select,  AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
+	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select,
+			AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
 
 		AnalyticStructureBuilder<?, ?>.Max max = extractMax(actualColumn);
 		return max != null && left.matches(select, max.left) && right.matches(select, max.right);
@@ -38,5 +39,10 @@ record MaxPattern<C> (Pattern left, Pattern right) implements Pattern {
 	@Nullable
 	private AnalyticStructureBuilder.Max extractMax(AnalyticStructureBuilder<?, ?>.AnalyticColumn other) {
 		return AnalyticStructureBuilderAssert.extract(AnalyticStructureBuilder.Max.class, other);
+	}
+
+	@Override
+	public String toString() {
+		return "Max(" + left + ", " + right + ')';
 	}
 }

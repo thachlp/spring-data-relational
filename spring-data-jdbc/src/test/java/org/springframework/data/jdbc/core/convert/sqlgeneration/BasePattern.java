@@ -26,4 +26,9 @@ record BasePattern(Object name) implements Pattern {
 	public String render() {
 		return name.toString();
 	}
+
+	@Override
+	public String toString() {
+		return name.toString();
+	}
 }
