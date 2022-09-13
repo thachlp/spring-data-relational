@@ -70,13 +70,13 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 	private AnalyticStructureBuilderAssert<T, C> containsPatternsExactly(Pattern... patterns) {
 
-		List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
+		List<? extends AnalyticStructureBuilder<?, ?>.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
 
 		List<Pattern> notFound = new ArrayList<>();
 		for (Pattern pattern : patterns) {
 
 			boolean found = false;
-			for (AnalyticStructureBuilder<?,?>.AnalyticColumn actualColumn : availableColumns) {
+			for (AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn : availableColumns) {
 
 				if (pattern.matches(actual.getSelect(), actualColumn)) {
 					found = true;
@@ -107,9 +107,9 @@ public class AnalyticStructureBuilderAssert<T, C>
 		} else if (c instanceof AnalyticStructureBuilder.RowNumber rn) {
 			return "RN";
 		} else if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
-			return "FK(" + fk.getColumn() + ")";
+			return fk.toString();
 		} else if (c instanceof AnalyticStructureBuilder.Max max) {
-			return "MAX(" + extractColumn(max.getLeft()) + ", " + extractColumn(max.getRight()) + ")";
+			return "MAX(" + toString(max.getLeft()) + ", " + toString(max.getRight()) + ")";
 		} else {
 			return "unknown";
 		}
@@ -132,9 +132,9 @@ public class AnalyticStructureBuilderAssert<T, C>
 	private static class ColumnsShouldContainExactly extends BasicErrorMessageFactory {
 
 		static ColumnsShouldContainExactly columnsShouldContainExactly(
-				List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> actualColumns, Pattern[] expected,
-				List<Pattern> notFound, List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> notExpected) {
-			String actualColumnsDescription = actualColumns.stream().map(ColumnsShouldContainExactly::toString)
+				List<? extends AnalyticStructureBuilder<?, ?>.AnalyticColumn> actualColumns, Pattern[] expected,
+				List<Pattern> notFound, List<? extends AnalyticStructureBuilder<?, ?>.AnalyticColumn> notExpected) {
+			String actualColumnsDescription = actualColumns.stream().map(AnalyticStructureBuilderAssert::toString)
 					.collect(Collectors.joining(", "));
 
 			String expectedDescription = Arrays.stream(expected).map(Pattern::render).collect(Collectors.joining(", "));
@@ -180,19 +180,20 @@ public class AnalyticStructureBuilderAssert<T, C>
 					  But <%s> were not found.""", actualColumns, expected, notFound, StandardComparisonStrategy.instance());
 		}
 
-		private static String toString(Object c) {
+	}
 
-			if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
-				return bc.getColumn().toString();
-			}
-			if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
-				return fk.toString();
-			}
-			if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
-				return toString(dc.getBase());
-			}
+	private static String toString(Object c) {
 
-			return extractColumn(c).toString();
+		if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
+			return bc.getColumn().toString();
 		}
+		if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
+			return fk.toString();
+		}
+		if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+			return toString(dc.getBase());
+		}
+
+		return extractColumn(c).toString();
 	}
 }

@@ -391,16 +391,4 @@ public class AnalyticStructureBuilderTests {
 		return froms;
 	}
 
-	private List<String> stringify(AnalyticStructureBuilder<String, ?>.Select select) {
-
-		if (select instanceof AnalyticStructureBuilder.TableDefinition) {
-			return Collections
-					.singletonList("TD(%s)".formatted(((AnalyticStructureBuilder.TableDefinition) select).getTable()));
-		} else {
-
-			String prefix = select instanceof AnalyticStructureBuilder.AnalyticView ? "AV" : "AJ";
-			return select.getFroms().stream().flatMap(f -> stringify(f).stream()).map(s -> prefix + " -> " + s).toList();
-		}
-	}
-
 }
