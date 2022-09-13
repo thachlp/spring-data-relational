@@ -123,7 +123,7 @@ public class AnalyticStructureBuilderTests {
 	}
 
 	@Nested
-	@Disabled // these tests are currently only scetches. the asserts need to be reviewed, and the necessary code for them
+	@Disabled // these tests are currently only sketches. the asserts need to be reviewed, and the necessary code for them
 						// implemented.
 	class TableWithChainOfChildren {
 
@@ -261,11 +261,10 @@ public class AnalyticStructureBuilderTests {
 		assertThat(builder)
 				.hasExactColumns( //
 						"customerId", "customerName", //
-						fk("address", "customerId"), "addressId", "addressName", //
+						max("customerId",fk("address", "customerId")),fk("address", "customerId"), "addressId", "addressName", //
 						max("addressId", fk("city", "addressId")), fk("city", "addressId"), "cityName", //
-						fk("order", "customerId"),"orderId", "orderName", //
+						max("customerId",fk("order", "customerId")),fk("order", "customerId"),"orderId", "orderName", //
 						max("addressId", fk("type", "addressId")), fk("type", "addressId"), "typeName"//
-						// TODO:Why no max columns for some FK here?
 				).hasId("customerId") //
 				.hasStructure( //
 						aj( //
@@ -334,9 +333,9 @@ public class AnalyticStructureBuilderTests {
 
 		assertThat(builder).hasExactColumns( //
 				"customerId", "customerName", // TODO: maxes are missing
-				fk("keyAccount", "customerId"), "keyAccountId", "keyAccountName", //
-				fk("office", "keyAccountId"), "officeName", //
-				fk("order", "customerId"), "orderId", "orderName", //
+				max("customerId",fk("keyAccount", "customerId")),fk("keyAccount", "customerId"), "keyAccountId", "keyAccountName", //
+				max("keyAccountId",fk("office", "keyAccountId")), "officeName", //
+				max("customerId", fk("order", "customerId")), "orderId", "orderName", //
 				max("keyAccountId", fk("assistant", "keyAccountId")), fk("assistant", "keyAccountId"), "assistantName", //
 				max("orderId", fk("item", "orderId")), fk("item", "orderId"), "itemName", //
 				max("orderId", fk("shipment", "orderId")), fk("shipment", "orderId"), "shipmentName", "officeId", //
