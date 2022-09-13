@@ -261,9 +261,9 @@ public class AnalyticStructureBuilderTests {
 		assertThat(builder)
 				.hasExactColumns( //
 						"customerId", "customerName", //
-						max("customerId",fk("address", "customerId")),fk("address", "customerId"), "addressId", "addressName", //
+						max("customerId",fk("address", "customerId")),fk("address", "customerId"), "addressId", "addressName", // <--
 						max("addressId", fk("city", "addressId")), fk("city", "addressId"), "cityName", //
-						max("customerId",fk("order", "customerId")),fk("order", "customerId"),"orderId", "orderName", //
+						max("customerId",fk("order", "customerId")),fk("order", "customerId"),"orderId", "orderName", // <--
 						max("addressId", fk("type", "addressId")), fk("type", "addressId"), "typeName"//
 				).hasId("customerId") //
 				.hasStructure( //

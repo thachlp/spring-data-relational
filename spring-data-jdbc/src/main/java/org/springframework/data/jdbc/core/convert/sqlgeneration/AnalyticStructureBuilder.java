@@ -285,12 +285,18 @@ class AnalyticStructureBuilder<T, C> {
 
 			this.parent = unwrapParent(parent);
 
-			if (child instanceof TableDefinition td && parent.getId() != null) {
+			TableDefinition td = extractTableDefinition(child);
+			if (td !=null && parent.getId() != null) {
 				ForeignKey foreignKey = new ForeignKey(parent.getId());
-				child = td.withForeignKey(foreignKey);
+				td.withForeignKey(foreignKey);
 				columnsFromJoin.add(new Max(parent.getId(), foreignKey));
-
+			} else {
+				System.out.println("creating join without fk");
+				System.out.println(parent.getId());
+				System.out.println(child);
+				System.out.println();
 			}
+
 			this.child = wrapChildInView(child);
 
 			this.joinCondition = new JoinCondition(parent.getId());
@@ -299,6 +305,20 @@ class AnalyticStructureBuilder<T, C> {
 			nodeParentLookUp.put(this.parent, this);
 			nodeParentLookUp.put(this.child, this);
 
+		}
+
+		@Nullable
+		TableDefinition extractTableDefinition(Select select) {
+
+			if (select instanceof TableDefinition td) {
+				return td;
+			}
+
+			if (select instanceof AnalyticView av) {
+				return (TableDefinition) av.getFroms().get(0);
+			}
+
+			return null;
 		}
 
 		AnalyticJoin(Select parent, Select child) {
