@@ -43,7 +43,7 @@ record ForeignKeyPattern<T, C> (T table, C name) implements Pattern {
 
 	@Override
 	public String render() {
-		return "FK(" + name + ")";
+		return toString();
 	}
 
 	@Nullable
@@ -55,9 +55,6 @@ record ForeignKeyPattern<T, C> (T table, C name) implements Pattern {
 	@Override
 	public String toString() {
 
-		if (table == null) {
-			return "FK(" + name + ")";
-		}
 		return "FK(" + table + ", " + name + ")";
 
 	}

@@ -50,7 +50,7 @@ public class AnalyticStructureBuilderAssert<T, C>
 			patterns[i] = object instanceof Pattern ? (Pattern) object : new BasePattern(object);
 		}
 
-		return containsPatternsExcactly(patterns);
+		return containsPatternsExactly(patterns);
 	}
 
 	AnalyticStructureBuilderAssert<T, C> hasId(C name) {
@@ -68,7 +68,7 @@ public class AnalyticStructureBuilderAssert<T, C>
 		return this;
 	}
 
-	private AnalyticStructureBuilderAssert<T, C> containsPatternsExcactly(Pattern... patterns) {
+	private AnalyticStructureBuilderAssert<T, C> containsPatternsExactly(Pattern... patterns) {
 
 		List<? extends AnalyticStructureBuilder<?,?>.AnalyticColumn> availableColumns = actual.getSelect().getColumns();
 
@@ -184,11 +184,15 @@ public class AnalyticStructureBuilderAssert<T, C>
 
 			if (c instanceof AnalyticStructureBuilder.BaseColumn bc) {
 				return bc.getColumn().toString();
-			} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
-				return extractColumn(dc.getBase()).toString();
+			}
+			if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
+				return fk.toString();
+			}
+			if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
+				return toString(dc.getBase());
 			}
 
-			throw new IllegalStateException("Column " + c + " is neither a BaseColumn nor a Derived one");
+			return extractColumn(c).toString();
 		}
 	}
 }
