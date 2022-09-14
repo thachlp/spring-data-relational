@@ -135,12 +135,15 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructureBuilder<String, String>.Select select = builder.getSelect();
 
-			assertThat(select.getColumns()).extracting(AnalyticStructureBuilderTests::extractColumn)
-					.containsExactlyInAnyOrder("grannyId", "grannyName", max("grannyId", fk("parent","grannyId")), fk("parent","grannyId"),
-							"parentId", "parentName", max("parentId", fk("child","parentId")), fk("child","parentId"), "childName");
-			assertThat(select.getId()).extracting(c -> c.getColumn()).isEqualTo(0);
-
-			assertThat(select.toString()).isEqualTo("AJ {p=TD{granny}, c=AJ {p=TD{parent}, c=AV{TD{child}}}}");
+			assertThat(builder).hasExactColumns( //
+							"grannyId", "grannyName", //
+							max("grannyId", fk("parent","grannyId")), fk("parent","grannyId"), //
+							"parentId", "parentName", //
+							max("parentId", fk("child","parentId")), fk("child","parentId"), //
+							"childName" //
+					) //
+					.hasId("grannyId") //
+					.hasStructure(aj(td("granny"), aj(td("parent"), av(td("child")))));
 		}
 
 		/**
