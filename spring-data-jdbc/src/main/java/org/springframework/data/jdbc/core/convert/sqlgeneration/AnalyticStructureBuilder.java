@@ -63,8 +63,16 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration));
 
-		this.nodeRoot = replace(newNode, nodeParentChain);
+//		this.nodeRoot = replace(newNode, nodeParentChain);
+		if (nodeParentChain.isEmpty()) {
+			nodeRoot = newNode;
+		} else {
+			Select oldNode = nodeParentChain.get(0);
+			if (oldNode instanceof AnalyticJoin aj) {
+				aj.setChild(newNode);
+			}
 
+		}
 		return this;
 	}
 
@@ -77,7 +85,19 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration), SINGLE);
 
-		this.nodeRoot = replace(newNode, nodeParentChain);
+//		this.nodeRoot = replace(newNode, nodeParentChain);
+
+		if (nodeParentChain.isEmpty()) {
+			nodeRoot = newNode;
+		} else {
+			 Select oldNode = nodeParentChain.get(0);
+			if (oldNode instanceof AnalyticJoin aj) {
+				aj.setChild(newNode);
+			}
+
+		}
+
+
 
 		return this;
 	}
@@ -127,6 +147,8 @@ class AnalyticStructureBuilder<T, C> {
 	/**
 	 * Returns the node closest to the root of which the chain build by following the `parent` <i>(Note: not the node
 	 * parent)</i> relationship leads to the node passed as an argument.
+	 *
+	 * When this node is a join it represents the join that joins all child elements to this node.
 	 */
 	private Select findUltimateNodeParent(T parent) {
 
@@ -144,7 +166,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		if (nodeParent == null) {
 			return node;
-		} else if (!nodeParent.getParent().equals(node)) {
+		} else if (!nodeParent.getParent().equals(node)) { // getParent is NOT looking for the node parent, but the parent in the entity relationship
 			return node;
 		} else {
 			return findUltimateNodeParent(nodeParent);
@@ -276,8 +298,7 @@ class AnalyticStructureBuilder<T, C> {
 	class AnalyticJoin extends Select {
 
 		private final Select parent;
-		private final Select child;
-		private final JoinCondition joinCondition;
+		private Select child;
 		private final List<AnalyticColumn> columnsFromJoin = new ArrayList();
 		private final Multiplicity multiplicity;
 
@@ -287,10 +308,12 @@ class AnalyticStructureBuilder<T, C> {
 
 			TableDefinition td = extractTableDefinition(child);
 			if (td !=null && parent.getId() != null) {
+
 				ForeignKey foreignKey = new ForeignKey(parent.getId());
 				td.withForeignKey(foreignKey);
 				columnsFromJoin.add(new Max(parent.getId(), foreignKey));
 			} else {
+
 				System.out.println("creating join without fk");
 				System.out.println(parent.getId());
 				System.out.println(child);
@@ -299,26 +322,11 @@ class AnalyticStructureBuilder<T, C> {
 
 			this.child = wrapChildInView(child);
 
-			this.joinCondition = new JoinCondition(parent.getId());
 			this.multiplicity = multiplicity;
 
 			nodeParentLookUp.put(this.parent, this);
 			nodeParentLookUp.put(this.child, this);
 
-		}
-
-		@Nullable
-		TableDefinition extractTableDefinition(Select select) {
-
-			if (select instanceof TableDefinition td) {
-				return td;
-			}
-
-			if (select instanceof AnalyticView av) {
-				return (TableDefinition) av.getFroms().get(0);
-			}
-
-			return null;
 		}
 
 		AnalyticJoin(Select parent, Select child) {
@@ -331,6 +339,20 @@ class AnalyticStructureBuilder<T, C> {
 				return (Select) node.getParent();
 			}
 			return node;
+		}
+
+		@Nullable
+		private TableDefinition extractTableDefinition(Select select) {
+
+			if (select instanceof TableDefinition td) {
+				return td;
+			}
+
+			if (select instanceof AnalyticView av) {
+				return (TableDefinition) av.getFroms().get(0);
+			}
+
+			return null;
 		}
 
 		private Select wrapChildInView(Select node) {
@@ -376,10 +398,11 @@ class AnalyticStructureBuilder<T, C> {
 			return "AJ {" + parent + ", " + child + '}';
 		}
 
-		JoinCondition getJoinCondition() {
-			return joinCondition;
-		}
+		void setChild(AnalyticJoin newChild) {
 
+			nodeParentLookUp.put(newChild, this );
+			this.child = newChild;
+		}
 	}
 
 	enum Multiplicity {
