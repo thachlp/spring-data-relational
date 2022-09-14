@@ -123,8 +123,6 @@ public class AnalyticStructureBuilderTests {
 	}
 
 	@Nested
-	@Disabled // these tests are currently only sketches. the asserts need to be reviewed, and the necessary code for them
-						// implemented.
 	class TableWithChainOfChildren {
 
 		@Test
@@ -329,13 +327,11 @@ public class AnalyticStructureBuilderTests {
 		builder.addChildTo("order", "shipment", td -> td.withColumns("shipmentName"));
 		builder.addChildTo("office", "room", td -> td.withColumns("roomNumber"));
 
-		AnalyticStructureBuilder.Select select = builder.getSelect();
-
 		assertThat(builder).hasExactColumns( //
-				"customerId", "customerName", // TODO: maxes are missing
+				"customerId", "customerName",
 				max("customerId",fk("keyAccount", "customerId")),fk("keyAccount", "customerId"), "keyAccountId", "keyAccountName", //
-				max("keyAccountId",fk("office", "keyAccountId")), "officeName", //
-				max("customerId", fk("order", "customerId")), "orderId", "orderName", //
+				max("keyAccountId",fk("office", "keyAccountId")),fk("office", "keyAccountId"), "officeName", //
+				max("customerId", fk("order", "customerId")), fk("order", "customerId"), "orderId", "orderName", //
 				max("keyAccountId", fk("assistant", "keyAccountId")), fk("assistant", "keyAccountId"), "assistantName", //
 				max("orderId", fk("item", "orderId")), fk("item", "orderId"), "itemName", //
 				max("orderId", fk("shipment", "orderId")), fk("shipment", "orderId"), "shipmentName", "officeId", //

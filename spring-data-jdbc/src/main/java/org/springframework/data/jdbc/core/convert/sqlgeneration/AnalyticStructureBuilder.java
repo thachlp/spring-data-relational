@@ -63,7 +63,6 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration));
 
-//		this.nodeRoot = replace(newNode, nodeParentChain);
 		if (nodeParentChain.isEmpty()) {
 			nodeRoot = newNode;
 		} else {
@@ -85,19 +84,15 @@ class AnalyticStructureBuilder<T, C> {
 
 		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, tableDefinitionConfiguration), SINGLE);
 
-//		this.nodeRoot = replace(newNode, nodeParentChain);
-
 		if (nodeParentChain.isEmpty()) {
 			nodeRoot = newNode;
 		} else {
-			 Select oldNode = nodeParentChain.get(0);
+			Select oldNode = nodeParentChain.get(0);
 			if (oldNode instanceof AnalyticJoin aj) {
 				aj.setChild(newNode);
 			}
 
 		}
-
-
 
 		return this;
 	}
@@ -146,9 +141,8 @@ class AnalyticStructureBuilder<T, C> {
 
 	/**
 	 * Returns the node closest to the root of which the chain build by following the `parent` <i>(Note: not the node
-	 * parent)</i> relationship leads to the node passed as an argument.
-	 *
-	 * When this node is a join it represents the join that joins all child elements to this node.
+	 * parent)</i> relationship leads to the node passed as an argument. When this node is a join it represents the join
+	 * that joins all child elements to this node.
 	 */
 	private Select findUltimateNodeParent(T parent) {
 
@@ -166,7 +160,8 @@ class AnalyticStructureBuilder<T, C> {
 
 		if (nodeParent == null) {
 			return node;
-		} else if (!nodeParent.getParent().equals(node)) { // getParent is NOT looking for the node parent, but the parent in the entity relationship
+		} else if (!nodeParent.getParent().equals(node)) { // getParent is NOT looking for the node parent, but the parent
+																												// in the entity relationship
 			return node;
 		} else {
 			return findUltimateNodeParent(nodeParent);
@@ -307,17 +302,11 @@ class AnalyticStructureBuilder<T, C> {
 			this.parent = unwrapParent(parent);
 
 			TableDefinition td = extractTableDefinition(child);
-			if (td !=null && parent.getId() != null) {
+			if (td != null && parent.getId() != null) {
 
 				ForeignKey foreignKey = new ForeignKey(parent.getId());
 				td.withForeignKey(foreignKey);
 				columnsFromJoin.add(new Max(parent.getId(), foreignKey));
-			} else {
-
-				System.out.println("creating join without fk");
-				System.out.println(parent.getId());
-				System.out.println(child);
-				System.out.println();
 			}
 
 			this.child = wrapChildInView(child);
@@ -400,7 +389,7 @@ class AnalyticStructureBuilder<T, C> {
 
 		void setChild(AnalyticJoin newChild) {
 
-			nodeParentLookUp.put(newChild, this );
+			nodeParentLookUp.put(newChild, this);
 			this.child = newChild;
 		}
 	}
