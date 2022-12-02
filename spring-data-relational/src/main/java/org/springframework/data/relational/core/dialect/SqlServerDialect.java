@@ -137,4 +137,9 @@ public class SqlServerDialect extends AbstractDialect {
 	public OrderByNullPrecedence orderByNullHandling() {
 		return OrderByNullPrecedence.NONE;
 	}
+
+	@Override
+	public boolean supportsSingleSelectQuery() {
+		return true;
+	}
 }

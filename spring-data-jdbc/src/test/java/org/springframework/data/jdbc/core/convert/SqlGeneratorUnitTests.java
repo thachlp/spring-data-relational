@@ -423,7 +423,7 @@ class SqlGeneratorUnitTests {
 				+ "LEFT OUTER JOIN referenced_entity ref ON ref.dummy_entity = dummy_entity.id1 " //
 				+ "LEFT OUTER JOIN second_level_referenced_entity ref_further ON ref_further.referenced_entity = ref.x_l1id " //
 				+ "WHERE dummy_entity.backref = :backref " //
-				+ "ORDER BY key-column");
+				+ "ORDER BY dummy_entity.key-column");
 	}
 
 	@Test // GH-1073
@@ -582,7 +582,7 @@ class SqlGeneratorUnitTests {
 						+ "entity_with_read_only_property.key-column AS key-column " //
 						+ "FROM entity_with_read_only_property " //
 						+ "WHERE entity_with_read_only_property.backref = :backref " //
-						+ "ORDER BY key-column" //
+						+ "ORDER BY entity_with_read_only_property.key-column" //
 		);
 	}
 

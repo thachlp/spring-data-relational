@@ -16,6 +16,7 @@
 package org.springframework.data.jdbc.testing;
 
 import static org.assertj.core.api.Assumptions.*;
+import static org.springframework.data.jdbc.testing.TestDatabaseFeatures.Database.*;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -47,7 +48,7 @@ public class TestDatabaseFeatures {
 	 * Not all databases support really huge numbers as represented by {@link java.math.BigDecimal} and similar.
 	 */
 	private void supportsHugeNumbers() {
-		assumeThat(database).isNotIn(Database.Oracle, Database.SqlServer);
+		assumeThat(database).isNotIn(Oracle, Database.SqlServer);
 	}
 
 	/**
@@ -56,7 +57,7 @@ public class TestDatabaseFeatures {
 	 * https://stackoverflow.com/questions/62263576/how-to-get-the-generated-key-for-a-column-with-lowercase-characters-from-oracle
 	 */
 	private void supportsQuotedIds() {
-		assumeThat(database).isNotEqualTo(Database.Oracle);
+		assumeThat(database).isNotEqualTo(Oracle);
 	}
 
 	/**
@@ -70,7 +71,7 @@ public class TestDatabaseFeatures {
 
 	private void supportsArrays() {
 
-		assumeThat(database).isNotIn(Database.MySql, Database.MariaDb, Database.SqlServer, Database.Db2, Database.Oracle);
+		assumeThat(database).isNotIn(Database.MySql, Database.MariaDb, Database.SqlServer, Database.Db2, Oracle);
 	}
 
 	private void supportsNanosecondPrecision() {
@@ -86,6 +87,20 @@ public class TestDatabaseFeatures {
 
 	private void supportsNullPrecedence() {
 		assumeThat(database).isNotIn(Database.MySql, Database.MariaDb, Database.SqlServer);
+	}
+
+
+	private void supportsWindowingFunctions() {
+		assumeThat(database).isNotEqualTo(Database.Hsql);
+	}
+
+	private void supportsFullOuterJoin() {
+		assumeThat(database).isNotIn(Database.H2, Database.MySql, Database.MariaDb);
+	}
+
+	private void supportsSingleSelectQuery() {
+		supportsWindowingFunctions();
+		supportsFullOuterJoin();
 	}
 
 	public void databaseIs(Database database) {
@@ -120,9 +135,14 @@ public class TestDatabaseFeatures {
 		SUPPORTS_ARRAYS(TestDatabaseFeatures::supportsArrays), //
 		SUPPORTS_GENERATED_IDS_IN_REFERENCED_ENTITIES(TestDatabaseFeatures::supportsGeneratedIdsInReferencedEntities), //
 		SUPPORTS_NANOSECOND_PRECISION(TestDatabaseFeatures::supportsNanosecondPrecision), //
-		SUPPORTS_NULL_PRECEDENCE(TestDatabaseFeatures::supportsNullPrecedence),
+		SUPPORTS_NULL_PRECEDENCE(TestDatabaseFeatures::supportsNullPrecedence), //
 		IS_POSTGRES(f -> f.databaseIs(Database.PostgreSql)), //
-		IS_HSQL(f -> f.databaseIs(Database.Hsql));
+		IS_HSQL(f -> f.databaseIs(Database.Hsql)), //
+		SUPPORTS_SINGLE_SELECT_QUERY(f -> {
+			f.supportsWindowingFunctions();
+			f.supportsFullOuterJoin();
+			assumeThat(f.database).isNotEqualTo(Oracle);
+		});
 
 		private final Consumer<TestDatabaseFeatures> featureMethod;
 
@@ -134,4 +154,5 @@ public class TestDatabaseFeatures {
 			featureMethod.accept(features);
 		}
 	}
+
 }

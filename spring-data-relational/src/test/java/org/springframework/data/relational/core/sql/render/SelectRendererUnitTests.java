@@ -304,6 +304,23 @@ class SelectRendererUnitTests {
 				+ "ON two.department_id = one.empId");
 	}
 
+	@Test
+	void shouldRenderJoinWithOrderBy(){
+
+		Table employee = SQL.table("employee");
+		Table department = SQL.table("department");
+
+		Column employeeId = employee.column("id");
+
+		Select select = Select.builder().select(employeeId, department.column("name")).from(employee) //
+				.join(department).on(employee.column("department_id")).equals(department.column("id")) //
+				.orderBy(employeeId) //
+				.build();
+
+		assertThat(SqlRenderer.toString(select)).isEqualTo("SELECT employee.id, department.name FROM employee "
+				+ "JOIN department ON employee.department_id = department.id ORDER BY employee.id");
+	}
+
 	@Test // DATAJDBC-309
 	void shouldRenderOrderByName() {
 
@@ -315,8 +332,8 @@ class SelectRendererUnitTests {
 		assertThat(SqlRenderer.toString(select)).isEqualTo("SELECT emp.name FROM employee emp ORDER BY emp.name ASC");
 	}
 
-	@Test // GH-968
-	void shouldRenderOrderByAlias() {
+	@Test // GH-968, GH-1446
+	void shouldFullyQualifyAliasOrderBy() {
 
 		Table employee = SQL.table("employee").as("emp");
 		Column column = employee.column("name").as("my_emp_name");
@@ -324,7 +341,7 @@ class SelectRendererUnitTests {
 		Select select = Select.builder().select(column).from(employee).orderBy(OrderByField.from(column).asc()).build();
 
 		assertThat(SqlRenderer.toString(select))
-				.isEqualTo("SELECT emp.name AS my_emp_name FROM employee emp ORDER BY my_emp_name ASC");
+				.isEqualTo("SELECT emp.name AS my_emp_name FROM employee emp ORDER BY emp.name ASC");
 	}
 
 	@Test // DATAJDBC-309
@@ -667,6 +684,21 @@ class SelectRendererUnitTests {
 			Select select = StatementBuilder.select( //
 					AnalyticFunction.create("MAX", salary) //
 							.orderBy(age) //
+			) //
+					.from(employee) //
+					.build();
+
+			String rendered = SqlRenderer.toString(select);
+
+			assertThat(rendered).isEqualTo("SELECT MAX(employee.salary) OVER(ORDER BY employee.age) FROM employee");
+		}
+
+		@Test
+		void renderAliasedOrderBy() {
+
+			Select select = StatementBuilder.select( //
+					AnalyticFunction.create("MAX", salary) //
+							.orderBy(age.as("age_alias")) //
 			) //
 					.from(employee) //
 					.build();

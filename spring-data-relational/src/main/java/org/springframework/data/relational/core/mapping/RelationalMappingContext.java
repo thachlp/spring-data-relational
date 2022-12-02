@@ -37,6 +37,8 @@ public class RelationalMappingContext
 	private final NamingStrategy namingStrategy;
 	private boolean forceQuote = true;
 
+	private boolean singleSelectQueryEnabled = true;
+
 	/**
 	 * Creates a new {@link RelationalMappingContext}.
 	 */
@@ -100,6 +102,14 @@ public class RelationalMappingContext
 
 	public NamingStrategy getNamingStrategy() {
 		return this.namingStrategy;
+	}
+
+	public boolean isSingleSelectQueryEnabled() {
+		return singleSelectQueryEnabled;
+	}
+
+	public void setSingleSelectQueryEnabled(boolean singleSelectQueryEnabled) {
+		this.singleSelectQueryEnabled = singleSelectQueryEnabled;
 	}
 
 }

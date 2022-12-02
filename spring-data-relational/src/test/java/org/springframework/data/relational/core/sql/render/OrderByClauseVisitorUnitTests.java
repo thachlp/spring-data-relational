@@ -39,8 +39,8 @@ import java.util.List;
  */
 class OrderByClauseVisitorUnitTests {
 
-	@Test // DATAJDBC-309
-	void shouldRenderOrderByAlias() {
+	@Test // DATAJDBC-309, GH-1446
+	void shouldNotRenderOrderByAlias() {
 
 		Table employee = SQL.table("employee").as("emp");
 		Column column = employee.column("name").as("emp_name");
@@ -50,7 +50,7 @@ class OrderByClauseVisitorUnitTests {
 		OrderByClauseVisitor visitor = new OrderByClauseVisitor(new SimpleRenderContext(NamingStrategies.asIs()));
 		select.visit(visitor);
 
-		assertThat(visitor.getRenderedPart().toString()).isEqualTo("emp_name ASC");
+		assertThat(visitor.getRenderedPart().toString()).isEqualTo("emp.name ASC");
 	}
 
 	@Test // DATAJDBC-309
@@ -64,7 +64,7 @@ class OrderByClauseVisitorUnitTests {
 		OrderByClauseVisitor visitor = new OrderByClauseVisitor(new SimpleRenderContext(NamingStrategies.toUpper()));
 		select.visit(visitor);
 
-		assertThat(visitor.getRenderedPart().toString()).isEqualTo("EMP_NAME ASC");
+		assertThat(visitor.getRenderedPart().toString()).isEqualTo("EMP.NAME ASC");
 	}
 
 	@Test // GH-968

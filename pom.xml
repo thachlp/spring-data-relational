@@ -46,6 +46,7 @@
 		<!-- test utilities-->
 		<awaitility.version>4.2.0</awaitility.version>
 		<archunit.version>1.0.1</archunit.version>
+		<jsqlparser.version>4.5</jsqlparser.version>
 	</properties>
 
 	<inceptionYear>2017</inceptionYear>

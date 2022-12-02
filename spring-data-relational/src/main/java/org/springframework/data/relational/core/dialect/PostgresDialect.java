@@ -184,4 +184,9 @@ public class PostgresDialect extends AbstractDialect {
 	public SimpleFunction getExistsFunction() {
 		return Functions.least(Functions.count(SQL.literalOf(1)), SQL.literalOf(1));
 	}
+
+	@Override
+	public boolean supportsSingleSelectQuery() {
+		return true;
+	}
 }

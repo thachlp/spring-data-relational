@@ -69,6 +69,7 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 	private final NamedParameterJdbcOperations operations;
 	private final SqlParametersFactory sqlParametersFactory;
 	private final InsertStrategyFactory insertStrategyFactory;
+	private final FindingDataAccessStrategy singleSelectDelegate;
 
 	/**
 	 * Creates a {@link DefaultDataAccessStrategy}
@@ -96,6 +97,7 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 		this.operations = operations;
 		this.sqlParametersFactory = sqlParametersFactory;
 		this.insertStrategyFactory = insertStrategyFactory;
+		this.singleSelectDelegate = new SingleSelectDataAccessStrategy(context, sqlGeneratorSource.getDialect(), converter, operations);
 	}
 
 	@Override
@@ -260,6 +262,10 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 	@Override
 	public <T> T findById(Object id, Class<T> domainType) {
 
+		if (isSingleSelectQuerySupported(domainType)) {
+			return singleSelectDelegate.findById(id, domainType);
+		}
+
 		String findOneSql = sql(domainType).getFindOne();
 		SqlIdentifierParameterSource parameter = sqlParametersFactory.forQueryById(id, domainType, ID_SQL_PARAMETER);
 
@@ -272,6 +278,11 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 
 	@Override
 	public <T> Iterable<T> findAll(Class<T> domainType) {
+
+		if (isSingleSelectQuerySupported(domainType)){
+			return singleSelectDelegate.findAll(domainType);
+		}
+
 		return operations.query(sql(domainType).getFindAll(), getEntityRowMapper(domainType));
 	}
 
@@ -430,4 +441,38 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 
 		return baseProperty.getOwner().getType();
 	}
+
+	private boolean isSingleSelectQuerySupported(Class<?> entityType) {
+
+		return sqlGeneratorSource.getDialect().supportsSingleSelectQuery() //
+				&& context.isSingleSelectQueryEnabled() //
+				&& entityQualifiesForSingleSelectQuery(entityType);
+	}
+
+	private boolean entityQualifiesForSingleSelectQuery(Class<?> entityType) {
+
+		boolean referenceFound = false;
+		for (PersistentPropertyPath<RelationalPersistentProperty> path : context.findPersistentPropertyPaths(entityType, __ -> true)) {
+			RelationalPersistentProperty property = path.getLeafProperty();
+			if (property.isEntity()) {
+				// embedded entities are currently not supported
+				if (property.isEmbedded()) {
+					return false;
+				}
+
+				// only single references are currently supported
+				if (referenceFound) {
+					return false;
+				}
+
+				referenceFound = true;
+			}
+			// AggregateReferences aren't supported yet
+			if (property.isAssociation()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 }

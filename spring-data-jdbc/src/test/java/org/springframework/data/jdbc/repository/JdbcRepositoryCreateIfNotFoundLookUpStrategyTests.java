@@ -47,12 +47,14 @@ class JdbcRepositoryCreateIfNotFoundLookUpStrategyTests
 
 	@Test // GH-1043
 	void declaredQueryShouldWork() {
+
 		onesRepository.deleteAll();
 		callDeclaredQuery("D", 2, "Diego", "Daniela");
 	}
 
 	@Test // GH-1043
 	void derivedQueryShouldWork() {
+
 		onesRepository.deleteAll();
 		callDerivedQuery();
 	}
