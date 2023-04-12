@@ -151,8 +151,8 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<SingleSet> reader = readerFactory.createAggregateReaderFor(entity);
 
 			SingleSet aggregateRoot = new SingleSet(null, new HashSet<>(asList( //
-					new DummyEntity(23, "Jens"), //
-					new DummyEntity(24, "Mark") //
+					new DummyEntity(null, "Jens"), //
+					new DummyEntity(null, "Mark") //
 			)));
 			SingleSet saved = aggregateTemplate.save(aggregateRoot);
 
@@ -169,8 +169,8 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<SingleList> reader = readerFactory.createAggregateReaderFor(entity);
 
 			SingleList aggregateRoot = new SingleList(null, asList( //
-					new DummyEntity(23, "Jens"), //
-					new DummyEntity(24, "Mark") //
+					new DummyEntity(null, "Jens"), //
+					new DummyEntity(null, "Mark") //
 			));
 			SingleList saved = aggregateTemplate.save(aggregateRoot);
 
@@ -187,8 +187,8 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<SingleMap> reader = readerFactory.createAggregateReaderFor(entity);
 
 			HashMap<String, DummyEntity> map = new HashMap<>();
-			map.put("one", new DummyEntity(23, "Jens"));
-			map.put("two", new DummyEntity(24, "Mark"));
+			map.put("one", new DummyEntity(null, "Jens"));
+			map.put("two", new DummyEntity(null, "Mark"));
 
 			SingleMap aggregateRoot = new SingleMap(null, map);
 			SingleMap saved = aggregateTemplate.save(aggregateRoot);
