@@ -95,14 +95,13 @@ public class SingleSelectIntegrationTests {
 		void findSingleSetById() {
 
 			SingleSet singleSetOne = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
-					new DummyEntity(null, "Jens"), //
-					new DummyEntity(null, "Mark") //
+					new DummyEntity(23, "Jens"), //
+					new DummyEntity(24, "Mark") //
 			))));
 
 			SingleSet singleSetTwo = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
-					new DummyEntity(null, "Olli") //
+					new DummyEntity(25, "Olli") //
 			))));
-			SingleSet saved = aggregateTemplate.save(singleSetOne);
 
 			RelationalPersistentEntity<SingleSet> singleSetPersistentEntity = (RelationalPersistentEntity<SingleSet>) jdbcMappingContext
 					.getRequiredPersistentEntity(SingleSet.class);
@@ -152,8 +151,8 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<SingleSet> reader = readerFactory.createAggregateReaderFor(entity);
 
 			SingleSet aggregateRoot = new SingleSet(null, new HashSet<>(asList( //
-					new DummyEntity(null, "Jens"), //
-					new DummyEntity(null, "Mark") //
+					new DummyEntity(23, "Jens"), //
+					new DummyEntity(24, "Mark") //
 			)));
 			SingleSet saved = aggregateTemplate.save(aggregateRoot);
 
@@ -170,8 +169,8 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<SingleList> reader = readerFactory.createAggregateReaderFor(entity);
 
 			SingleList aggregateRoot = new SingleList(null, asList( //
-					new DummyEntity(null, "Jens"), //
-					new DummyEntity(null, "Mark") //
+					new DummyEntity(23, "Jens"), //
+					new DummyEntity(24, "Mark") //
 			));
 			SingleList saved = aggregateTemplate.save(aggregateRoot);
 
@@ -188,8 +187,8 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<SingleMap> reader = readerFactory.createAggregateReaderFor(entity);
 
 			HashMap<String, DummyEntity> map = new HashMap<>();
-			map.put("one", new DummyEntity(null, "Jens"));
-			map.put("two", new DummyEntity(null, "Mark"));
+			map.put("one", new DummyEntity(23, "Jens"));
+			map.put("two", new DummyEntity(24, "Mark"));
 
 			SingleMap aggregateRoot = new SingleMap(null, map);
 			SingleMap saved = aggregateTemplate.save(aggregateRoot);
