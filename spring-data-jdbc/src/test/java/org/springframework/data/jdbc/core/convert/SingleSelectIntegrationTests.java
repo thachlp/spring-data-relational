@@ -95,12 +95,12 @@ public class SingleSelectIntegrationTests {
 		void findSingleSetById() {
 
 			SingleSet singleSetOne = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
-					new DummyEntity(23, "Jens"), //
-					new DummyEntity(24, "Mark") //
+					new DummyEntity(null, "Jens"), //
+					new DummyEntity(null, "Mark") //
 			))));
 
 			SingleSet singleSetTwo = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
-					new DummyEntity(25, "Olli") //
+					new DummyEntity(null, "Olli") //
 			))));
 
 			RelationalPersistentEntity<SingleSet> singleSetPersistentEntity = (RelationalPersistentEntity<SingleSet>) jdbcMappingContext
