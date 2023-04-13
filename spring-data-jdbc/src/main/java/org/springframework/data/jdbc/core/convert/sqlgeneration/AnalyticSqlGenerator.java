@@ -20,13 +20,18 @@ import org.springframework.data.relational.core.dialect.Dialect;
 import org.springframework.data.relational.core.dialect.RenderContextFactory;
 import org.springframework.data.relational.core.mapping.PersistentPropertyPathExtension;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
+import org.springframework.data.relational.core.sql.Comparison;
+import org.springframework.data.relational.core.sql.SQL;
 import org.springframework.data.relational.core.sql.Select;
+import org.springframework.data.relational.core.sql.SqlIdentifier;
+import org.springframework.data.relational.core.sql.Table;
 import org.springframework.data.relational.core.sql.render.RenderContext;
 import org.springframework.data.relational.core.sql.render.SqlRenderer;
 
 public class AnalyticSqlGenerator {
 
 	private final Dialect dialect;
+	private final RelationalPersistentEntity<?> aggregate;
 
 	private final AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select selectStructure;
 	private final StructureToSelect structureToSelect;
@@ -35,27 +40,32 @@ public class AnalyticSqlGenerator {
 			StructureToSelect structureToSelect, RelationalPersistentEntity<?> aggregate) {
 
 		this.dialect = dialect;
+		this.aggregate = aggregate;
 		this.selectStructure = aggregateToStructure.createSelectStructure(aggregate);
 		this.structureToSelect = structureToSelect;
 	}
 
 	public String findAll() {
 
-		Select select = structureToSelect.createSelect(selectStructure).findAll();
+		Select select = structureToSelect.createSelect(selectStructure, null).findAll();
 
 		return getSqlRenderer().render(select);
 	}
 
 	public <T> String findById() {
 
-		Select select = structureToSelect.createSelect(selectStructure)
+		SqlIdentifier idColumn = aggregate.getIdColumn();
+		SqlIdentifier tableName = aggregate.getQualifiedTableName();
+		Comparison condition = Table.create(tableName).column(idColumn).isEqualTo(SQL.bindMarker(":id"));
+
+		Select select = structureToSelect.createSelect(selectStructure, condition)
 				.findById();
 		return getSqlRenderer().render(select);
 	}
 
 	public <T> String findAllById() {
 
-		Select select = structureToSelect.createSelect(selectStructure)
+		Select select = structureToSelect.createSelect(selectStructure, null)
 				.findAllById();
 		return getSqlRenderer().render(select);
 	}

@@ -44,7 +44,7 @@ public class StructureToSelect {
 	}
 
 	SelectConstruction createSelect(
-			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure) {
+			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure, Condition condition) {
 
 		Map<PersistentPropertyPathExtension, Expression> idExpressions = new HashMap<>();
 
@@ -52,7 +52,7 @@ public class StructureToSelect {
 			idExpressions.put(path, expression);
 		};
 
-		SelectConstruction selectConstruction = createUnorderedSelect(queryStructure, registerIdExpression);
+		SelectConstruction selectConstruction = createUnorderedSelect(queryStructure, registerIdExpression, condition);
 
 		if (queryStructure instanceof AnalyticStructureBuilder.AnalyticJoin join) {
 
@@ -70,16 +70,16 @@ public class StructureToSelect {
 
 	private SelectConstruction createUnorderedSelect(
 			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure,
-			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
+			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression, Condition condition) {
 
 		SelectBuilder.BuildSelect select;
 
 		if (queryStructure instanceof AnalyticStructureBuilder.TableDefinition tableDefinition) {
-			select = createSimpleSelect(tableDefinition, registerIdExpression);
+			select = createSimpleSelect(tableDefinition, registerIdExpression, condition);
 		} else if (queryStructure instanceof AnalyticStructureBuilder.AnalyticJoin analyticJoin) {
-			select = createJoin(analyticJoin, registerIdExpression);
+			select = createJoin(analyticJoin, registerIdExpression, condition);
 		} else if (queryStructure instanceof AnalyticStructureBuilder.AnalyticView analyticView) {
-			select = createView(analyticView, registerIdExpression);
+			select = createView(analyticView, registerIdExpression, condition);
 		} else {
 			throw new UnsupportedOperationException("Can't convert " + queryStructure);
 		}
@@ -89,16 +89,16 @@ public class StructureToSelect {
 	}
 
 	private SelectBuilder.BuildSelect createView(AnalyticStructureBuilder.AnalyticView analyticView,
-			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
-		return createSimpleSelect(analyticView, registerIdExpression);
+												 BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression, Condition condition) {
+		return createSimpleSelect(analyticView, registerIdExpression, condition);
 	}
 
 	private SelectBuilder.SelectFromAndJoinCondition createJoin(
 			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticJoin analyticJoin,
-			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
+			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression, Condition condition) {
 
 		AnalyticStructureBuilder.Select child = analyticJoin.getChild();
-		SelectConstruction childSelect = createUnorderedSelect(child, NOOP_ID_REGISTRATION);
+		SelectConstruction childSelect = createUnorderedSelect(child, NOOP_ID_REGISTRATION, condition);
 		InlineQuery childQuery = InlineQuery.create(childSelect.findAll(), getAliasFor(child));
 
 		AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select parent = analyticJoin
@@ -109,8 +109,8 @@ public class StructureToSelect {
 
 		SelectBuilder.SelectFromAndJoin selectAndParent = StatementBuilder.select(columns).from(parentTable);
 
-		Condition condition = createJoinCondition(parentTable, childQuery, analyticJoin);
-		return selectAndParent.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(condition);
+		Condition joinCondition = createJoinCondition(parentTable, childQuery, analyticJoin);
+		return selectAndParent.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
 	}
 
 	private String getAliasFor(Object object) {
@@ -250,7 +250,7 @@ public class StructureToSelect {
 
 	private SelectBuilder.SelectFromAndJoin createSimpleSelect(
 			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select select,
-			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
+			BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression, Condition condition) {
 
 		List<? extends AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn> analyticColumns = select
 				.getColumns();
@@ -317,6 +317,8 @@ public class StructureToSelect {
 		}
 
 		public Select findAllById() {
+
+
 
 			List<AnalyticStructureBuilder.AnalyticColumn> ids = queryStructure.getId();
 
