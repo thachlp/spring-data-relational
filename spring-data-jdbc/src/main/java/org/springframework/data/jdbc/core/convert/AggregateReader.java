@@ -52,7 +52,7 @@ public class AggregateReader<T> {
 		this.jdbcTemplate = jdbcTemplate;
 
 		this.sqlGenerator = new AnalyticSqlGenerator(dialect, new AggregateToStructure(mappingContext),
-				new StructureToSelect(aliasFactory));
+				new StructureToSelect(aliasFactory), aggregate);
 	}
 
 	public List<T> findAll() {
