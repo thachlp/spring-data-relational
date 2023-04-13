@@ -49,7 +49,7 @@ public class SingleSelectDataAccessStrategy implements FindingDataAccessStrategy
 
 	@Override
 	public <T> Iterable<T> findAllById(Iterable<?> ids, Class<T> domainType) {
-		throw new UnsupportedOperationException();
+		return getReader(domainType).findAllById(ids);
 	}
 
 	@Override

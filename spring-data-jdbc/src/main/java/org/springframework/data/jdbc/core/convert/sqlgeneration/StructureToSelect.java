@@ -316,6 +316,18 @@ public class StructureToSelect {
 			return select.build();
 		}
 
+		public Select findAllById() {
+
+			List<AnalyticStructureBuilder.AnalyticColumn> ids = queryStructure.getId();
+
+			Assert.state(!ids.isEmpty(), "an aggregate must have an id");
+			Assert.state(ids.size() == 1, () -> "only single ids supported (" + ids + ")");
+
+			((SelectBuilder.SelectWhere) select).where(Conditions.in(getIdColumn(ids), SQL.bindMarker(":ids")));
+
+			return select.build();
+		}
+
 		private Expression getIdColumn(List<AnalyticStructureBuilder.AnalyticColumn> ids) {
 
 			Expression expression = idExpressions.get(ids.get(0).getColumn());
@@ -334,5 +346,6 @@ public class StructureToSelect {
 
 			this.idExpressions = idExpressions;
 		}
+
 	}
 }

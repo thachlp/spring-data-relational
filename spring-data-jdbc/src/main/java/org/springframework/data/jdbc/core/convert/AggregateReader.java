@@ -16,6 +16,7 @@
 
 package org.springframework.data.jdbc.core.convert;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -74,12 +75,28 @@ public class AggregateReader<T> {
 				pathToColumn);
 
 		String sql = sqlGenerator.findById(aggregate);
-		// TODO: apply writing converter
+
 		id = converter.writeValue(id, aggregate.getIdProperty().getTypeInformation());
 
 		Iterator<T> result = jdbcTemplate.query(sql, Map.of("id", id), extractor).iterator();
 
 		return result.hasNext() ? result.next() : null;
+	}
+
+	public Iterable<T> findAllById(Iterable<?> ids) {
+
+		PathToColumnMapping pathToColumn = createPathToColumnMapping(aliasFactory);
+		AggregateResultSetExtractor<T> extractor = new AggregateResultSetExtractor<>(mappingContext, aggregate, converter,
+				pathToColumn);
+
+		String sql = sqlGenerator.findAllById(aggregate);
+
+		List<Object> convertedIds = new ArrayList<>();
+		for (Object id : ids) {
+			convertedIds.add(converter.writeValue(id, aggregate.getIdProperty().getTypeInformation()));
+		}
+
+		return jdbcTemplate.query(sql, Map.of("ids", convertedIds), extractor);
 	}
 
 	private PathToColumnMapping createPathToColumnMapping(AliasFactory aliasFactory) {
@@ -105,4 +122,5 @@ public class AggregateReader<T> {
 			}
 		};
 	}
+
 }

@@ -293,10 +293,12 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 			return Collections.emptyList();
 		}
 
+		if (isSingleSelectQuerySupported(domainType)){
+			return singleSelectDelegate.findAllById(ids, domainType);
+		}
+
 		SqlParameterSource parameterSource = sqlParametersFactory.forQueryByIds(ids, domainType);
-
 		String findAllInListSql = sql(domainType).getFindAllInList();
-
 		return operations.query(findAllInListSql, parameterSource, getEntityRowMapper(domainType));
 	}
 

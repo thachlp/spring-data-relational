@@ -85,10 +85,11 @@ public class SingleSelectIntegrationTests {
 			AggregateReader<DummyEntity> reader = readerFactory.createAggregateReaderFor(entity);
 
 			DummyEntity jens = aggregateTemplate.save(new DummyEntity(null, "Jens"));
-			DummyEntity mark = aggregateTemplate.save(new DummyEntity(null, "Jens"));
+			DummyEntity mark = aggregateTemplate.save(new DummyEntity(null, "Mark"));
 
 			assertThat(reader.findById(mark.id)).isEqualTo(mark);
 		}
+
 
 		@Test
 		@EnabledOnFeature(TestDatabaseFeatures.Feature.SUPPORTS_SINGLE_SELECT_QUERY)
@@ -108,6 +109,20 @@ public class SingleSelectIntegrationTests {
 
 			AggregateReader<SingleSet> reader = readerFactory.createAggregateReaderFor(singleSetPersistentEntity);
 			assertThat(reader.findById(singleSetTwo.id)).isEqualTo(singleSetTwo);
+		}
+		@Test
+		@EnabledOnFeature(TestDatabaseFeatures.Feature.SUPPORTS_SINGLE_SELECT_QUERY)
+		void findAllById() {
+			RelationalPersistentEntity<DummyEntity> entity = (RelationalPersistentEntity<DummyEntity>) jdbcMappingContext
+					.getRequiredPersistentEntity(DummyEntity.class);
+
+			AggregateReader<DummyEntity> reader = readerFactory.createAggregateReaderFor(entity);
+
+			DummyEntity jens = aggregateTemplate.save(new DummyEntity(null, "Jens"));
+			DummyEntity mark = aggregateTemplate.save(new DummyEntity(null, "Mark"));
+			DummyEntity olli = aggregateTemplate.save(new DummyEntity(null, "Olli"));
+
+			assertThat(reader.findAllById(asList(mark.id, olli.id))).containsExactly(mark, olli);
 		}
 
 	}

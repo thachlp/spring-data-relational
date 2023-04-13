@@ -73,8 +73,6 @@ class AnalyticSqlGeneratorTests {
 
 			String sql = sqlGenerator.findAll(singleRefEntity);
 
-			System.out.println(sql);
-
 			assertThatParsed(sql) //
 					.withAliases(aliasFactory) //
 					.hasExactColumns( //

@@ -62,7 +62,6 @@ class CachingResultSet {
 			returnValue = safeGetFromDelegate(columnLabel);
 		}
 
-		System.out.println(" returning " + returnValue);
 		return returnValue;
 	}
 

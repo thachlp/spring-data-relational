@@ -59,10 +59,16 @@ public class AnalyticSqlGenerator {
 		return getSqlRenderer().render(select);
 	}
 
+	public <T> String findAllById(RelationalPersistentEntity<T> aggregateRoot) {
+
+		Select select = structureToSelect.createSelect(aggregateToStructure
+				.createSelectStructure(aggregateRoot)).findAllById();
+		return getSqlRenderer().render(select);
+	}
+
 	private SqlRenderer getSqlRenderer() {
 
 		RenderContext renderContext = new RenderContextFactory(dialect).createRenderContext();
 		return SqlRenderer.create(renderContext);
 	}
-
 }
