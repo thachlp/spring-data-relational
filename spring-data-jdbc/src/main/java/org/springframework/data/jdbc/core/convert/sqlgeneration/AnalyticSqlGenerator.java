@@ -39,21 +39,21 @@ public class AnalyticSqlGenerator {
 		this.structureToSelect = structureToSelect;
 	}
 
-	public String findAll(RelationalPersistentEntity<?> aggregateRoot) {
+	public String findAll() {
 
 		Select select = structureToSelect.createSelect(selectStructure).findAll();
 
 		return getSqlRenderer().render(select);
 	}
 
-	public <T> String findById(RelationalPersistentEntity<T> aggregateRoot) {
+	public <T> String findById() {
 
 		Select select = structureToSelect.createSelect(selectStructure)
 				.findById();
 		return getSqlRenderer().render(select);
 	}
 
-	public <T> String findAllById(RelationalPersistentEntity<T> aggregateRoot) {
+	public <T> String findAllById() {
 
 		Select select = structureToSelect.createSelect(selectStructure)
 				.findAllById();

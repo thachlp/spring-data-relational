@@ -57,7 +57,7 @@ public class AggregateReader<T> {
 
 	public List<T> findAll() {
 
-		String sql = sqlGenerator.findAll(aggregate);
+		String sql = sqlGenerator.findAll();
 
 		PathToColumnMapping pathToColumn = createPathToColumnMapping(aliasFactory);
 		AggregateResultSetExtractor<T> extractor = new AggregateResultSetExtractor<>(mappingContext, aggregate, converter,
@@ -74,7 +74,7 @@ public class AggregateReader<T> {
 		AggregateResultSetExtractor<T> extractor = new AggregateResultSetExtractor<>(mappingContext, aggregate, converter,
 				pathToColumn);
 
-		String sql = sqlGenerator.findById(aggregate);
+		String sql = sqlGenerator.findById();
 
 		id = converter.writeValue(id, aggregate.getIdProperty().getTypeInformation());
 
@@ -89,7 +89,7 @@ public class AggregateReader<T> {
 		AggregateResultSetExtractor<T> extractor = new AggregateResultSetExtractor<>(mappingContext, aggregate, converter,
 				pathToColumn);
 
-		String sql = sqlGenerator.findAllById(aggregate);
+		String sql = sqlGenerator.findAllById();
 
 		List<Object> convertedIds = new ArrayList<>();
 		for (Object id : ids) {

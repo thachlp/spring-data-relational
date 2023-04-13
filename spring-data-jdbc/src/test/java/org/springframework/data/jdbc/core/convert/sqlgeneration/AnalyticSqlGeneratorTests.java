@@ -27,14 +27,15 @@ import org.springframework.data.relational.core.dialect.AnsiDialect;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 
-import java.util.function.Function;
-
 class AnalyticSqlGeneratorTests {
 
 	JdbcMappingContext context = new JdbcMappingContext();
 	AliasFactory aliasFactory = new AliasFactory();
-	Function<RelationalPersistentEntity<?>, AnalyticSqlGenerator> sqlGenerator = aggregate -> new AnalyticSqlGenerator(TestDialect.INSTANCE, new AggregateToStructure(context),
-			new StructureToSelect(aliasFactory), aggregate);
+
+	AnalyticSqlGenerator sqlGenerator(RelationalPersistentEntity<?> aggregate) {
+		return new AnalyticSqlGenerator(TestDialect.INSTANCE, new AggregateToStructure(context),
+				new StructureToSelect(aliasFactory), aggregate);
+	}
 
 	@Nested
 	class Conditions {
@@ -43,7 +44,7 @@ class AnalyticSqlGeneratorTests {
 
 			RelationalPersistentEntity<?> dummyEntity = getRequiredPersistentEntity(DummyEntity.class);
 
-			String sql = sqlGenerator.apply(dummyEntity).findById(dummyEntity);
+			String sql = sqlGenerator(dummyEntity).findById();
 
 			Assertions.assertThat(sql).isNotNull();
 
@@ -59,7 +60,7 @@ class AnalyticSqlGeneratorTests {
 
 			RelationalPersistentEntity<?> dummyEntity = getRequiredPersistentEntity(DummyEntity.class);
 
-			String sql = sqlGenerator.apply(dummyEntity).findAll(dummyEntity);
+			String sql = sqlGenerator(dummyEntity).findAll();
 
 			assertThatParsed(sql).withAliases(aliasFactory)//
 					.hasExactColumns( //
@@ -73,7 +74,7 @@ class AnalyticSqlGeneratorTests {
 
 			RelationalPersistentEntity<?> singleRefEntity = getRequiredPersistentEntity(SingleReference.class);
 
-			String sql = sqlGenerator.apply(singleRefEntity).findAll(singleRefEntity);
+			String sql = sqlGenerator(singleRefEntity).findAll();
 
 			assertThatParsed(sql) //
 					.withAliases(aliasFactory) //
