@@ -356,7 +356,9 @@ public class StructureToSelect {
 
 			SelectBuilder.SelectFromAndJoin from = StatementBuilder.select(selectExpressionList).from(table);
 
-			if (condition != null) {
+			if (condition != null
+					&& select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td
+					&& td.getTable().equals(queryStructure.getRoot())) {
 
 				System.out.println("applying condition on simple table");
 				return from.where(condition.apply(table));
