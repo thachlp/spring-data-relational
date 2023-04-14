@@ -25,6 +25,7 @@ import org.springframework.data.relational.core.sql.SQL;
 import org.springframework.data.relational.core.sql.Select;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
 import org.springframework.data.relational.core.sql.Table;
+import org.springframework.data.relational.core.sql.TableLike;
 import org.springframework.data.relational.core.sql.render.RenderContext;
 import org.springframework.data.relational.core.sql.render.SqlRenderer;
 
@@ -54,13 +55,15 @@ public class AnalyticSqlGenerator {
 
 	public <T> String findById() {
 
-		SqlIdentifier idColumn = aggregate.getIdColumn();
-		SqlIdentifier tableName = aggregate.getQualifiedTableName();
-		Comparison condition = Table.create(tableName).column(idColumn).isEqualTo(SQL.bindMarker(":id"));
-
-		Select select = structureToSelect.createSelect(selectStructure, condition)
-				.findById();
+		Select select = structureToSelect.createSelect(selectStructure, this::findById)
+				.findAll();
 		return getSqlRenderer().render(select);
+	}
+
+	private Comparison findById(TableLike table) {
+		SqlIdentifier idColumn = aggregate.getIdColumn();
+		Comparison condition = table.column(idColumn).isEqualTo(SQL.bindMarker(":id"));
+		return condition;
 	}
 
 	public <T> String findAllById() {

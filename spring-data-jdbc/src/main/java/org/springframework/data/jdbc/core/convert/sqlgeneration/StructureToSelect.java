@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import org.springframework.data.relational.core.mapping.PersistentPropertyPathExtension;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
@@ -44,13 +45,11 @@ public class StructureToSelect {
 	}
 
 	SelectConstruction createSelect(
-			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure, Condition condition) {
+			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure,
+			Function<TableLike, Condition> condition) {
 
 		return new SelectConstructionContext(queryStructure, condition).createSelect();
 	}
-
-
-
 
 	class SelectConstruction {
 		SelectBuilder.BuildSelect select;
@@ -81,8 +80,6 @@ public class StructureToSelect {
 
 		public Select findAllById() {
 
-
-
 			List<AnalyticStructureBuilder.AnalyticColumn> ids = queryStructure.getId();
 
 			Assert.state(!ids.isEmpty(), "an aggregate must have an id");
@@ -103,7 +100,7 @@ public class StructureToSelect {
 		}
 
 		private SelectConstruction orderBy(Collection<OrderByField> orderByFields) {
-			select = ((SelectBuilder.SelectFromAndJoinCondition) select).orderBy(orderByFields);
+			select = ((SelectBuilder.SelectOrdered) select).orderBy(orderByFields);
 			return this;
 		}
 
@@ -116,9 +113,11 @@ public class StructureToSelect {
 
 	private class SelectConstructionContext {
 		private final AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure;
-		private final Condition condition;
+		private final Function<TableLike, Condition> condition;
 
-		public SelectConstructionContext(AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure, Condition condition) {
+		public SelectConstructionContext(
+				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure,
+				Function<TableLike, Condition> condition) {
 			this.queryStructure = queryStructure;
 			this.condition = condition;
 		}
@@ -172,13 +171,12 @@ public class StructureToSelect {
 
 		}
 
-
 		private SelectBuilder.BuildSelect createView(AnalyticStructureBuilder.AnalyticView analyticView,
-													 BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
+				BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
 			return createSimpleSelect(analyticView, registerIdExpression);
 		}
 
-		private SelectBuilder.SelectFromAndJoinCondition createJoin(
+		private SelectBuilder.SelectOrdered createJoin(
 				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticJoin analyticJoin,
 				BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
 
@@ -195,7 +193,18 @@ public class StructureToSelect {
 			SelectBuilder.SelectFromAndJoin selectAndParent = StatementBuilder.select(columns).from(parentTable);
 
 			Condition joinCondition = createJoinCondition(parentTable, childQuery, analyticJoin);
-			return selectAndParent.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
+			SelectBuilder.SelectFromAndJoinCondition joinThingy = selectAndParent
+					.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
+
+			if (condition != null
+					&& parent instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td
+					&& td.getTable().equals(queryStructure.getRoot())) {
+
+				System.out.println("applying condition on join");
+				return joinThingy.where(condition.apply(parentTable));
+			}
+
+			return joinThingy;
 		}
 
 		private String getAliasFor(Object object) {
@@ -218,8 +227,8 @@ public class StructureToSelect {
 
 		// TODO: table is not required when the column is derived
 		private Expression createColumn(TableLike table,
-										AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn analyticColumn,
-										BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
+				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn analyticColumn,
+				BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
 
 			if (analyticColumn instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.ForeignKey foreignKey) {
 
@@ -273,7 +282,7 @@ public class StructureToSelect {
 		}
 
 		private Expression createRownumberExpression(TableLike parentTable,
-													 AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.RowNumber rn) {
+				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.RowNumber rn) {
 			Expression column;
 			Expression[] partitionBys = (rn.getPartitionBy().stream()
 					.map(ac -> createColumn(parentTable, ac, NOOP_ID_REGISTRATION))).toArray(Expression[]::new);
@@ -311,7 +320,7 @@ public class StructureToSelect {
 		}
 
 		private Condition createJoinCondition(TableLike parentTable, TableLike childQuery,
-											  AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticJoin analyticJoin) {
+				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticJoin analyticJoin) {
 
 			Condition condition = null;
 			for (AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.JoinCondition joinCondition : analyticJoin
@@ -333,7 +342,7 @@ public class StructureToSelect {
 			return condition;
 		}
 
-		private SelectBuilder.SelectFromAndJoin createSimpleSelect(
+		private SelectBuilder.SelectOrdered createSimpleSelect(
 				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select select,
 				BiConsumer<PersistentPropertyPathExtension, Expression> registerIdExpression) {
 
@@ -346,6 +355,12 @@ public class StructureToSelect {
 					registerIdExpression);
 
 			SelectBuilder.SelectFromAndJoin from = StatementBuilder.select(selectExpressionList).from(table);
+
+			if (condition != null) {
+
+				System.out.println("applying condition on simple table");
+				return from.where(condition.apply(table));
+			}
 			return from;
 		}
 

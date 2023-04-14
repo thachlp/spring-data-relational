@@ -49,10 +49,13 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 	private Select nodeRoot;
 	private final Map<Object, Select> nodeParentLookUp = new HashMap<>();
 
+	private T root;
+
 	AnalyticStructureBuilder<T, C> addTable(T table,
 			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
-		this.nodeRoot = createTable(table, null,  tableDefinitionConfiguration);
+		this.root = table;
+		this.nodeRoot = createTable(table, null, tableDefinitionConfiguration);
 
 		return this;
 	}
@@ -64,7 +67,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		List<Select> nodeParentChain = collectNodeParents(nodeParent);
 
-		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, fkInformation, tableDefinitionConfiguration));
+		AnalyticJoin newNode = new AnalyticJoin(nodeParent,
+				createTable(child, fkInformation, tableDefinitionConfiguration));
 
 		if (nodeParentChain.isEmpty()) {
 			nodeRoot = newNode;
@@ -78,14 +82,15 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		return this;
 	}
 
-	AnalyticStructureBuilder<T, C> addSingleChildTo(T parent, C fkInformation,T child,
+	AnalyticStructureBuilder<T, C> addSingleChildTo(T parent, C fkInformation, T child,
 			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 
 		Select nodeParent = findUltimateNodeParent(parent);
 
 		List<Select> nodeParentChain = collectNodeParents(nodeParent);
 
-		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, fkInformation, tableDefinitionConfiguration), SINGLE);
+		AnalyticJoin newNode = new AnalyticJoin(nodeParent, createTable(child, fkInformation, tableDefinitionConfiguration),
+				SINGLE);
 
 		if (nodeParentChain.isEmpty()) {
 			nodeRoot = newNode;
@@ -148,8 +153,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		}
 	}
 
-	private TableDefinition createTable(T table,
-										C fkInformation, Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
+	private TableDefinition createTable(T table, C fkInformation,
+			Function<TableDefinition, TableDefinition> tableDefinitionConfiguration) {
 		return tableDefinitionConfiguration.apply(new TableDefinition(table, fkInformation));
 	}
 
@@ -181,6 +186,10 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		return new DerivedColumn(column);
 	}
 
+	public T getRoot() {
+		return root;
+	}
+
 	abstract class Select {
 
 		abstract List<? extends AnalyticColumn> getColumns();
@@ -206,6 +215,9 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		abstract void buildRowNumbers();
 
+		public T getRoot() {
+			return AnalyticStructureBuilder.this.getRoot();
+		}
 	}
 
 	abstract class SingleTableSelect extends Select {
@@ -222,8 +234,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		private final C pathInformation;
 
-		TableDefinition(T table, @Nullable C pathInformation, @Nullable AnalyticColumn id, List<? extends AnalyticColumn> columns, ForeignKey foreignKey,
-						KeyColumn keyColumn) {
+		TableDefinition(T table, @Nullable C pathInformation, @Nullable AnalyticColumn id,
+				List<? extends AnalyticColumn> columns, ForeignKey foreignKey, KeyColumn keyColumn) {
 
 			this.table = table;
 			this.pathInformation = pathInformation;
@@ -241,8 +253,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			this(table, pathInformation, null, Collections.emptyList(), null, null);
 		}
 
-		 TableDefinition(T table) {
-			 this(table, null);
+		TableDefinition(T table) {
+			this(table, null);
 		}
 
 		TableDefinition withId(C id) {
@@ -672,7 +684,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		@Override
 		public String toString() {
-			return "RN( partition by " + partitionBy.stream().map(Object::toString).collect(Collectors.joining(", ")) + " order by " + orderBy.stream().map(Object::toString).collect(Collectors.joining(", ")) + ')';
+			return "RN( partition by " + partitionBy.stream().map(Object::toString).collect(Collectors.joining(", "))
+					+ " order by " + orderBy.stream().map(Object::toString).collect(Collectors.joining(", ")) + ')';
 		}
 
 		public List<? extends AnalyticColumn> getPartitionBy() {
