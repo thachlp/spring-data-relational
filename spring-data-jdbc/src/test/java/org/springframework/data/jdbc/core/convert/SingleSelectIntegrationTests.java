@@ -108,8 +108,9 @@ public class SingleSelectIntegrationTests {
 					.getRequiredPersistentEntity(SingleSet.class);
 
 			AggregateReader<SingleSet> reader = readerFactory.createAggregateReaderFor(singleSetPersistentEntity);
-			assertThat(reader.findById(singleSetTwo.id)).isEqualTo(singleSetTwo);
+			assertThat(reader.findById(singleSetOne.id)).isEqualTo(singleSetOne);
 		}
+
 		@Test
 		@EnabledOnFeature(TestDatabaseFeatures.Feature.SUPPORTS_SINGLE_SELECT_QUERY)
 		void findAllById() {
