@@ -68,25 +68,10 @@ public class StructureToSelect {
 
 		public Select findById() {
 
-			List<AnalyticStructureBuilder.AnalyticColumn> ids = queryStructure.getId();
-
-			Assert.state(!ids.isEmpty(), "an aggregate must have an id");
-			Assert.state(ids.size() == 1, () -> "only single ids supported (" + ids + ")");
-
-			((SelectBuilder.SelectWhere) select).where(Conditions.isEqual(getIdColumn(ids), SQL.bindMarker(":id")));
-
 			return select.build();
 		}
 
 		public Select findAllById() {
-
-			List<AnalyticStructureBuilder.AnalyticColumn> ids = queryStructure.getId();
-
-			Assert.state(!ids.isEmpty(), "an aggregate must have an id");
-			Assert.state(ids.size() == 1, () -> "only single ids supported (" + ids + ")");
-
-			((SelectBuilder.SelectWhere) select).where(Conditions.in(getIdColumn(ids), SQL.bindMarker(":ids")));
-
 			return select.build();
 		}
 
@@ -118,6 +103,7 @@ public class StructureToSelect {
 		public SelectConstructionContext(
 				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select queryStructure,
 				Function<TableLike, Condition> condition) {
+
 			this.queryStructure = queryStructure;
 			this.condition = condition;
 		}
@@ -360,7 +346,6 @@ public class StructureToSelect {
 					&& select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td
 					&& td.getTable().equals(queryStructure.getRoot())) {
 
-				System.out.println("applying condition on simple table");
 				return from.where(condition.apply(table));
 			}
 			return from;

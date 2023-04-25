@@ -95,6 +95,12 @@ public class SingleSelectIntegrationTests {
 		@EnabledOnFeature(TestDatabaseFeatures.Feature.SUPPORTS_SINGLE_SELECT_QUERY)
 		void findSingleSetById() {
 
+
+			// TODO:
+			// - wrap parent table in view filter should get added to this automatically
+			// - add lateral conditions to every join using the direct id.
+			// - add lateral conditions for entities with own id.
+			
 			SingleSet singleSetOne = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
 					new DummyEntity(null, "Jens"), //
 					new DummyEntity(null, "Mark") //
@@ -111,9 +117,31 @@ public class SingleSelectIntegrationTests {
 			assertThat(reader.findById(singleSetOne.id)).isEqualTo(singleSetOne);
 		}
 
+
+
+		@Test
+		@EnabledOnFeature(TestDatabaseFeatures.Feature.SUPPORTS_SINGLE_SELECT_QUERY)
+		void findSingleSetByIdX() {
+
+			SingleSet singleSetOne = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
+					new DummyEntity(null, "Jens"), //
+					new DummyEntity(null, "Mark") //
+			))));
+
+			SingleSet singleSetTwo = aggregateTemplate.save(new SingleSet(null, new HashSet<>(asList( //
+					new DummyEntity(null, "Olli") //
+			))));
+
+			RelationalPersistentEntity<SingleSet> singleSetPersistentEntity = (RelationalPersistentEntity<SingleSet>) jdbcMappingContext
+					.getRequiredPersistentEntity(SingleSet.class);
+
+			AggregateReader<SingleSet> reader = readerFactory.createAggregateReaderFor(singleSetPersistentEntity);
+			assertThat(reader.findById(singleSetTwo.id)).isEqualTo(singleSetTwo);
+		}
 		@Test
 		@EnabledOnFeature(TestDatabaseFeatures.Feature.SUPPORTS_SINGLE_SELECT_QUERY)
 		void findAllById() {
+
 			RelationalPersistentEntity<DummyEntity> entity = (RelationalPersistentEntity<DummyEntity>) jdbcMappingContext
 					.getRequiredPersistentEntity(DummyEntity.class);
 

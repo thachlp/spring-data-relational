@@ -21,10 +21,10 @@ import org.springframework.data.relational.core.dialect.RenderContextFactory;
 import org.springframework.data.relational.core.mapping.PersistentPropertyPathExtension;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.sql.Comparison;
+import org.springframework.data.relational.core.sql.Condition;
 import org.springframework.data.relational.core.sql.SQL;
 import org.springframework.data.relational.core.sql.Select;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
-import org.springframework.data.relational.core.sql.Table;
 import org.springframework.data.relational.core.sql.TableLike;
 import org.springframework.data.relational.core.sql.render.RenderContext;
 import org.springframework.data.relational.core.sql.render.SqlRenderer;
@@ -55,23 +55,33 @@ public class AnalyticSqlGenerator {
 
 	public <T> String findById() {
 
-		Select select = structureToSelect.createSelect(selectStructure, this::findById)
+		Select select = structureToSelect.createSelect(selectStructure, this::createFindByIdCondition)
 				.findAll();
 		return getSqlRenderer().render(select);
 	}
 
-	private Comparison findById(TableLike table) {
-		SqlIdentifier idColumn = aggregate.getIdColumn();
-		Comparison condition = table.column(idColumn).isEqualTo(SQL.bindMarker(":id"));
-		return condition;
-	}
 
 	public <T> String findAllById() {
 
-		Select select = structureToSelect.createSelect(selectStructure, null)
+		Select select = structureToSelect.createSelect(selectStructure, this::createFindAllByIdsCondition)
 				.findAllById();
 		return getSqlRenderer().render(select);
 	}
+
+	private Condition createFindByIdCondition(TableLike table) {
+
+		SqlIdentifier idColumn = aggregate.getIdColumn();
+		Condition condition = table.column(idColumn).isEqualTo(SQL.bindMarker(":id"));
+		return condition;
+	}
+
+	private Condition createFindAllByIdsCondition(TableLike table) {
+
+		SqlIdentifier idColumn = aggregate.getIdColumn();
+		Condition condition = table.column(idColumn).in(SQL.bindMarker(":ids"));
+		return condition;
+	}
+
 
 	private SqlRenderer getSqlRenderer() {
 

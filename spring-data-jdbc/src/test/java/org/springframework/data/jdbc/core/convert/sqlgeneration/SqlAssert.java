@@ -223,6 +223,13 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 
 		return this;
 	}
+	public SqlAssert hasNoWhereClause() {
+
+		Expression where = getSelect().getWhere();
+		assertThat(where).isNull();
+
+		return this;
+	}
 
 	static class ColumnsSpec {
 		private final RelationalMappingContext context;
