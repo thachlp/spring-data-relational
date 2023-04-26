@@ -180,6 +180,11 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 	}
 
 	private AnalyticColumn derived(AnalyticColumn column) {
+
+		if (column == null) {
+			return null;
+		}
+
 		if (column instanceof DerivedColumn || column instanceof Literal) {
 			return column;
 		}
@@ -363,13 +368,22 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		AnalyticJoin(Select parent, Select child, Multiplicity multiplicity) {
 
-			this.parent = unwrapParent(parent);
+			this.parent = wrapParent(unwrapParent(parent));
+			// this.parent = unwrapParent(parent);
 			this.child = wrapChildInView(child);
 			this.multiplicity = multiplicity;
 
 			nodeParentLookUp.put(this.parent, this);
 			nodeParentLookUp.put(this.child, this);
 
+		}
+
+		private Select wrapParent(Select parent) {
+
+			if (parent instanceof TableDefinition td && td.getTable().equals(getRoot())) {
+				return new AnalyticView(td);
+			}
+			return parent;
 		}
 
 		AnalyticJoin(Select parent, Select child) {
@@ -526,7 +540,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		JoinCondition(AnalyticColumn left, AnalyticColumn right) {
 
-			this.left = left;
+			this.left = left == null ? new Literal(1) : left;
 			this.right = right;
 		}
 
@@ -557,8 +571,9 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			ArrayList<AnalyticColumn> allColumns = new ArrayList<>();
 			table.getColumns().forEach(c -> allColumns.add(c));
 
-			Assert.state(rowNumber != null, "Rownumber must not be null at this state");
-			allColumns.add(rowNumber);
+			if(rowNumber != null) {
+				allColumns.add(rowNumber);
+			}
 
 			return allColumns;
 		}
@@ -590,6 +605,11 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		@Override
 		void buildRowNumbers() {
+
+			if (table.table.equals(getRoot())) {
+				return;
+			}
+
 			List<AnalyticColumn> orderBy;
 			if (table.keyColumn != null) {
 				orderBy = Collections.singletonList(table.keyColumn);
@@ -600,6 +620,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 				orderBy = table.getId();
 			}
 			rowNumber = new RowNumber(table.getForeignKey(), orderBy);
+
 		}
 
 		@Override
@@ -766,7 +787,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		Greatest(AnalyticColumn left, AnalyticColumn right, Object aliasHint) {
 
-			this.left = left;
+			this.left = left == null ? new Literal(1) : left;
 			this.right = right;
 			this.aliasHint = aliasHint;
 		}

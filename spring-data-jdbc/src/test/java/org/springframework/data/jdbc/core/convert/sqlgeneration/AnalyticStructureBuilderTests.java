@@ -79,7 +79,7 @@ public class AnalyticStructureBuilderTests {
 				rn(fk("child", "parentId")), //
 				greatest(lit(1), rn(fk("child", "parentId"))) //
 		).hasId("parentId") //
-				.hasStructure(aj(td("parent"), av(td("child")), //
+				.hasStructure(aj(av(td("parent")), av(td("child")), //
 						eq("parentId", fk("child", "parentId")), // <-- should fail due to wrong column value
 						eq(lit(1), rn(fk("child", "parentId"))) //
 				));
@@ -120,7 +120,7 @@ public class AnalyticStructureBuilderTests {
 				.hasId("parentId") //
 				.hasStructure( //
 						aj( //
-								td("parent"), //
+								av(td("parent")), //
 								av(td("child")), //
 								eq("parentId", fk("child", "parentId")), //
 								eq(lit(1), rn(fk("child", "parentId"))) //
@@ -156,7 +156,7 @@ public class AnalyticStructureBuilderTests {
 				.hasId("parentId") //
 				.hasStructure( //
 						aj( //
-								aj(td("parent"), av(td("child1")), //
+								aj(av(td("parent")), av(td("child1")), //
 										eq("parentId", fk("child1", "parentId")), //
 										eq(lit(1), rn(fk("child1", "parentId"))) //
 								), //
@@ -206,7 +206,7 @@ public class AnalyticStructureBuilderTests {
 					.hasId("grannyId") //
 					.hasStructure( //
 							aj( //
-									td("granny"), //
+									av(td("granny")), //
 									aj( //
 											td("parent"), //
 											av(td("child")), //
@@ -325,7 +325,7 @@ public class AnalyticStructureBuilderTests {
 					.hasId("grannyId") //
 					.hasStructure( //
 							aj( //
-									td("granny"), //
+									av(td("granny")), //
 									aj( //
 											td("parent"), //
 											av(td("child")), //
@@ -379,7 +379,7 @@ public class AnalyticStructureBuilderTests {
 					.hasId("grannyId") //
 					.hasStructure( //
 							aj( //
-									td("granny"), //
+									av(td("granny")), //
 									aj( //
 											td("parent"), //
 											av(td("child")), //
@@ -540,7 +540,7 @@ public class AnalyticStructureBuilderTests {
 		assertThat(structure).hasStructure( //
 				aj( //
 						aj( //
-								td("customer"), //
+								av(td("customer")), //
 								aj( //
 										aj( //
 												td("keyAccount"), //

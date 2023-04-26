@@ -16,7 +16,6 @@
 
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.mapping.PropertyHandler;
 import org.springframework.data.relational.core.mapping.PersistentPropertyPathExtension;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
@@ -53,7 +52,8 @@ public class AggregateToStructure {
 		leafEntity.doWithProperties((PropertyHandler<RelationalPersistentProperty>) p -> {
 			if (p.isEntity()) {
 				RelationalPersistentEntity<?> entity = context.getRequiredPersistentEntity(p.getActualType());
-				builder.addChildTo(p.getOwner(),currentPath.extendBy(p), entity, td2 -> configureTableDefinition(currentPath.extendBy(p), td2));
+				builder.addChildTo(p.getOwner(), currentPath.extendBy(p), entity,
+						td2 -> configureTableDefinition(currentPath.extendBy(p), td2));
 			}
 		});
 	}
@@ -62,7 +62,7 @@ public class AggregateToStructure {
 			PersistentPropertyPathExtension path,
 			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td) {
 
-		path.getLeafEntity().doWithProperties((PropertyHandler<RelationalPersistentProperty>)  p -> {
+		path.getLeafEntity().doWithProperties((PropertyHandler<RelationalPersistentProperty>) p -> {
 			PersistentPropertyPathExtension propertyPath = path.extendBy((RelationalPersistentProperty) p);
 
 			if (p.isIdProperty()) {

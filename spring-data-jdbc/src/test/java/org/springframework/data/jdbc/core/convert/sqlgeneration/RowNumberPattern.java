@@ -15,10 +15,10 @@
  */
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
-import org.springframework.lang.Nullable;
-
 import java.util.Arrays;
 import java.util.List;
+
+import org.springframework.lang.Nullable;
 
 /**
  * @author Jens Schauder
@@ -26,16 +26,17 @@ import java.util.List;
 class RowNumberPattern implements Pattern {
 	private final Pattern[] partitionBy;
 
-	public RowNumberPattern(Pattern ... partitionBy) {
+	public RowNumberPattern(Pattern... partitionBy) {
 		this.partitionBy = partitionBy;
 	}
 
-	static RowNumberPattern rn(Pattern ... partitionBy) {
+	static RowNumberPattern rn(Pattern... partitionBy) {
 		return new RowNumberPattern(partitionBy);
 	}
 
 	@Override
-	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select, AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
+	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select,
+			AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
 
 		AnalyticStructureBuilder.RowNumber rn = extractRn(actualColumn);
 		if (rn == null) {
@@ -43,7 +44,9 @@ class RowNumberPattern implements Pattern {
 		}
 		List<? extends AnalyticStructureBuilder.AnalyticColumn> actualPartitionBy = rn.getPartitionBy();
 
-		if (partitionBy.length != actualPartitionBy.size())
+		if (partitionBy.length != actualPartitionBy.size()) {
+			return false;
+		}
 
 		for (int i = 0; i < partitionBy.length; i++) {
 			if (!(partitionBy[i].matches(select, actualPartitionBy.get(i)))) {
