@@ -405,7 +405,7 @@ public class AnalyticStructureBuilderTests {
 			ForeignKeyPattern<String, ForeignKeyPattern<String, String>> fkChildToGranny = fk("child", fkParentToGranny);
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
-					rn(fkParentToGranny), //
+					rn(fkParentToGranny), // -- missing
 					greatest(lit(1), rn(fkParentToGranny)), //
 					"parentName", //
 					fkChildToGranny, //

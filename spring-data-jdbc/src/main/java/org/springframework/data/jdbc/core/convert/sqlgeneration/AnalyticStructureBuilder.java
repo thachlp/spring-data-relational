@@ -426,7 +426,6 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			List<AnalyticColumn> result = new ArrayList<>();
 
 			List<AnalyticColumn> ids = parent.getId();
-			List<AnalyticColumn> fks = child.getForeignKey();
 
 			parent.getColumns().stream().filter(c -> !ids.contains(c))
 					.forEach(c -> result.add(parent instanceof TableDefinition ? c : derived(c)));
@@ -609,6 +608,13 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			if (table.table.equals(getRoot())) {
 				return;
 			}
+
+			// TODO: table.getForeignKey seems to return the wrong (or at least changed value)
+			// - Why?
+			// - Is it really wrong?
+			// Relevant test: AnalyticStructureBuilderTests.middleSingleChildHasNoId
+			//RN([FK(parent, grannyId)]) turned into RN( partition by FK(child, FK(parent, grannyId)) order by FK(child, FK(parent, grannyId)))
+			// note that the former is pattern syntax while the later is AnalyticStructure syntax
 
 			List<AnalyticColumn> orderBy;
 			if (table.keyColumn != null) {
