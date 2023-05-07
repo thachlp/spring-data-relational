@@ -201,14 +201,8 @@ public class AnalyticStructureBuilderSelectAssert<T, C>
 			return bc.getColumn();
 		} else if (c instanceof AnalyticStructureBuilder.DerivedColumn dc) {
 			return extractColumn(dc.getBase());
-		} else if (c instanceof AnalyticStructureBuilder.RowNumber rn) {
-			return "RN";
-		} else if (c instanceof AnalyticStructureBuilder.ForeignKey fk) {
-			return fk.toString();
-		} else if (c instanceof AnalyticStructureBuilder.Greatest greatest) {
-			return "MAX(" + toString(greatest.getLeft()) + ", " + toString(greatest.getRight()) + ")";
 		} else {
-			return "unknown";
+			return c.toString();
 		}
 	}
 	@Nullable

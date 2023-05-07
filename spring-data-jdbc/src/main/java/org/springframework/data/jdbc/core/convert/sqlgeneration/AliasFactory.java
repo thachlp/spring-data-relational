@@ -46,7 +46,7 @@ public class AliasFactory {
 					(AnalyticStructureBuilder.BaseColumn bc) -> bc.getColumn()),
 			new DefaultAliasFactory<>(RelationalPersistentProperty.class, "C", pp -> pp.getName()),
 			new DefaultAliasFactory<>(RelationalPersistentEntity.class, "T", rpe -> rpe.getTableName().toString()),
-			new DefaultAliasFactory<>(AnalyticStructureBuilder.Greatest.class, "GT", gt -> {
+			new DefaultAliasFactory<>(AnalyticStructureBuilder.Coalesce.class, "GT", gt -> {
 				if (gt.getRight().getColumn() instanceof AnalyticStructureBuilder.RowNumber)
 					return "RN";
 				if (gt.getLeft() instanceof AnalyticStructureBuilder.Literal)

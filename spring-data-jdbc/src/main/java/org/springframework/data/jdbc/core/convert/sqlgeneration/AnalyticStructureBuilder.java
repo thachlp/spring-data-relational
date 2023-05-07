@@ -356,7 +356,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 	class AnalyticJoin extends Select {
 
 		private final Select parent;
-		private Greatest rowNumber;
+		private Coalesce rowNumber;
 		private Select child;
 
 		// TODO: this is really more of an effective id. Make sure to keep the rownumber separately
@@ -479,7 +479,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 				AnalyticColumn parentId = parentIdsIterator.next();
 				// add a greatest expression between the parent.id and the fk, to have a non-null id for this join
-				columnsFromJoin.add(new Greatest(parentId, fk, parentId));
+				columnsFromJoin.add(new Coalesce(parentId, fk, parentId));
 				// add the parent.id child.fk relation to the join condition
 				conditions.add(new JoinCondition(parentId, fk));
 			});
@@ -502,7 +502,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			parent.buildRowNumbers();
 			child.buildRowNumbers();
 
-			rowNumber = new Greatest(parent.getRowNumber(), child.getRowNumber());
+			rowNumber = new Coalesce(parent.getRowNumber(), child.getRowNumber());
 			conditions.add(new JoinCondition(derived(parent.getRowNumber()), derived(child.getRowNumber())));
 
 		}
@@ -785,20 +785,20 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		Object hint();
 	}
 
-	class Greatest extends AnalyticColumn implements WithAliasHint {
+	class Coalesce extends AnalyticColumn implements WithAliasHint {
 
 		final AnalyticColumn left;
 		final AnalyticColumn right;
 		private final Object aliasHint;
 
-		Greatest(AnalyticColumn left, AnalyticColumn right, Object aliasHint) {
+		Coalesce(AnalyticColumn left, AnalyticColumn right, Object aliasHint) {
 
 			this.left = left == null ? new Literal(1) : left;
 			this.right = right;
 			this.aliasHint = aliasHint;
 		}
 
-		Greatest(AnalyticColumn left, AnalyticColumn right) {
+		Coalesce(AnalyticColumn left, AnalyticColumn right) {
 			this(left, right, null);
 		}
 

@@ -244,7 +244,7 @@ public class StructureToSelect {
 
 				return createRownumberExpression(table, rn);
 			}
-			if (analyticColumn instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Greatest gt) {
+			if (analyticColumn instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Coalesce gt) {
 
 				Expression leftColumn = createColumn(table, gt.left, NOOP_ID_REGISTRATION);
 				Expression rightColumn = createColumn(table, gt.right, NOOP_ID_REGISTRATION);

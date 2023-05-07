@@ -27,8 +27,8 @@ record GreatestPattern<C> (Pattern left, Pattern right) implements Pattern {
 	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select,
 			AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
 
-		AnalyticStructureBuilder<?, ?>.Greatest greatest = extractGreatest(actualColumn);
-		return greatest != null && left.matches(select, greatest.left) && right.matches(select, greatest.right);
+		AnalyticStructureBuilder<?, ?>.Coalesce coalesce = extractGreatest(actualColumn);
+		return coalesce != null && left.matches(select, coalesce.left) && right.matches(select, coalesce.right);
 	}
 
 	@Override
@@ -37,8 +37,8 @@ record GreatestPattern<C> (Pattern left, Pattern right) implements Pattern {
 	}
 
 	@Nullable
-	private AnalyticStructureBuilder.Greatest extractGreatest(AnalyticStructureBuilder<?, ?>.AnalyticColumn other) {
-		return AnalyticStructureBuilderSelectAssert.extract(AnalyticStructureBuilder.Greatest.class, other);
+	private AnalyticStructureBuilder.Coalesce extractGreatest(AnalyticStructureBuilder<?, ?>.AnalyticColumn other) {
+		return AnalyticStructureBuilderSelectAssert.extract(AnalyticStructureBuilder.Coalesce.class, other);
 	}
 
 	@Override

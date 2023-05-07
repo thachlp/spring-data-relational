@@ -96,7 +96,7 @@ public class AnalyticStructureBuilderTests {
 		assertThat(structure.getSelect().getColumns()) //
 				.allMatch(c -> //
 				c instanceof AnalyticStructureBuilder.DerivedColumn //
-						|| c instanceof AnalyticStructureBuilder.Greatest //
+						|| c instanceof AnalyticStructureBuilder.Coalesce //
 						|| (c instanceof AnalyticStructureBuilder.BaseColumn bc && bc.column.toString().startsWith("parent"))
 				);
 
