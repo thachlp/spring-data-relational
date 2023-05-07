@@ -20,7 +20,7 @@ import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticJ
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticViewPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.ConditionPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.ForeignKeyPattern.*;
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.GreatestPattern.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.CoalescePattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.KeyPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.LiteralPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.MaxOverPattern.*;
@@ -75,9 +75,9 @@ public class AnalyticStructureBuilderTests {
 				"parent-value", "parent-lastname", //
 				"child-value", "child-lastname", //
 				fk("child", "parentId"), //
-				greatest("parentId", fk("child", "parentId")), //
+				coalesce("parentId", fk("child", "parentId")), //
 				rn(fk("child", "parentId")), //
-				greatest(lit(1), rn(fk("child", "parentId"))) //
+				coalesce(lit(1), rn(fk("child", "parentId"))) //
 		).hasId("parentId") //
 				.hasStructure(aj(av(td("parent")), av(td("child")), //
 						eq("parentId", fk("child", "parentId")), // <-- should fail due to wrong column value
@@ -113,9 +113,9 @@ public class AnalyticStructureBuilderTests {
 		assertThat(structure) //
 				.hasExactColumns("parentName", "parentLastname", //
 						fk("child", "parentId"), //
-						greatest("parentId", fk("child", "parentId")), //
+						coalesce("parentId", fk("child", "parentId")), //
 						rn(fk("child", "parentId")), //
-						greatest(lit(1), rn(fk("child", "parentId"))), //
+						coalesce(lit(1), rn(fk("child", "parentId"))), //
 						key("childKey"), "childName", "childLastname") //
 				.hasId("parentId") //
 				.hasStructure( //
@@ -137,20 +137,20 @@ public class AnalyticStructureBuilderTests {
 				.addChildTo("parent", "parent-child2","child2", td -> td.withColumns("siblingName", "siblingLastName")) //
 				.build();
 
-		GreatestPattern<LiteralPattern> rnChild1 = greatest(lit(1), rn(fk("child1", "parentId")));
+		CoalescePattern<LiteralPattern> rnChild1 = coalesce(lit(1), rn(fk("child1", "parentId")));
 
 		assertThat(structure) //
 				.hasExactColumns("parentName", "parentLastname", //
 						fk("child1", "parentId"), //
-						greatest("parentId", fk("child1", "parentId")), //
+						coalesce("parentId", fk("child1", "parentId")), //
 						rn(fk("child1", "parentId")), //
 						rnChild1, //
 						"childName", "childLastname", //
 
 						fk("child2", "parentId"), //
-						greatest("parentId", fk("child2", "parentId")), //
+						coalesce("parentId", fk("child2", "parentId")), //
 						rn(fk("child2", "parentId")), //
-						greatest(rnChild1, rn(fk("child2", "parentId"))), //
+						coalesce(rnChild1, rn(fk("child2", "parentId"))), //
 						"siblingName", //
 						"siblingLastName")
 				.hasId("parentId") //
@@ -190,17 +190,17 @@ public class AnalyticStructureBuilderTests {
 							fk("parent", "grannyId"), // join
 
 							// child + parent
-							greatest("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
+							coalesce("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
 																															// necessary for joining with further children?
-							greatest(lit(1), rn(fk("child", "parentId"))), // completed RN for joining with granny
-							maxOver(fk("parent", "grannyId"), greatest("parentId", fk("child", "parentId"))),
+							coalesce(lit(1), rn(fk("child", "parentId"))), // completed RN for joining with granny
+							maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))),
 
 							// granny table
 							"grannyName", //
 							// (parent + child) --> granny
-							greatest("grannyId", maxOver(fk("parent", "grannyId"), greatest("parentId", fk("child", "parentId")))), // completed
+							coalesce("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed
 																																																											// grannyId
-							greatest(lit(1), greatest(lit(1), rn(fk("child", "parentId")))) // completed RN for granny.
+							coalesce(lit(1), coalesce(lit(1), rn(fk("child", "parentId")))) // completed RN for granny.
 
 					) //
 					.hasId("grannyId") //
@@ -213,8 +213,8 @@ public class AnalyticStructureBuilderTests {
 											eq("parentId", fk("child", "parentId")), //
 											eq(lit(1), rn(fk("child", "parentId"))) //
 									), //
-									eq("grannyId", maxOver(fk("parent", "grannyId"), greatest("parentId", fk("child", "parentId")))), //
-									eq(lit(1), greatest(lit(1), rn(fk("child", "parentId")))) // corrected
+									eq("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), //
+									eq(lit(1), coalesce(lit(1), rn(fk("child", "parentId")))) // corrected
 							) //
 					);
 		}
@@ -246,9 +246,9 @@ public class AnalyticStructureBuilderTests {
 					.build();
 
 			ForeignKeyPattern<String, String> fkChildToParent = fk("child", "parentId");
-			GreatestPattern<String> idOfJoinParentWithChild = greatest("parentId", fkChildToParent);
+			CoalescePattern<String> idOfJoinParentWithChild = coalesce("parentId", fkChildToParent);
 			ForeignKeyPattern<String, String> fkParentToGranny = fk("parent", "grannyId");
-			GreatestPattern<LiteralPattern> rnJoinParentWithChild = greatest(lit(1), rn(fkParentToGranny));
+			CoalescePattern<LiteralPattern> rnJoinParentWithChild = coalesce(lit(1), rn(fkParentToGranny));
 			MaxOverPattern<ForeignKeyPattern<String, String>> fkJoinParentWithChildToGranny = maxOver(fkParentToGranny,
 					idOfJoinParentWithChild);
 
@@ -273,10 +273,10 @@ public class AnalyticStructureBuilderTests {
 					// granny
 					"grannyName", //
 					// join of granny + (parent + child)
-					greatest("grannyId", fkJoinParentWithChildToGranny), // grannyId
+					coalesce("grannyId", fkJoinParentWithChildToGranny), // grannyId
 					// for every column
 					rnJoinParentWithChild, //
-					greatest(lit(1), greatest(lit(1), rn(fkChildToParent))) //
+					coalesce(lit(1), coalesce(lit(1), rn(fkChildToParent))) //
 			) //
 					.hasId("grannyId") //
 					.hasStructure( //
@@ -305,21 +305,21 @@ public class AnalyticStructureBuilderTests {
 
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
-					greatest(lit(1), greatest(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))))),
-					greatest("grannyId",
+					coalesce(lit(1), coalesce(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))))),
+					coalesce("grannyId",
 							maxOver(fk("parent", "grannyId"),
-									greatest(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
-									greatest(key("parentKey"), fk("child", key("parentKey"))))),
-					maxOver(fk("parent", "grannyId"), greatest(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
-							greatest(key("parentKey"), fk("child", key("parentKey")))),
+									coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+									coalesce(key("parentKey"), fk("child", key("parentKey"))))),
+					maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+							coalesce(key("parentKey"), fk("child", key("parentKey")))),
 					"parentName", //
 
 					fk("child", fk("parent", "grannyId")), //
-					greatest(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))), //
+					coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))), //
 					fk("child", key("parentKey")), //
-					greatest(key("parentKey"), fk("child", key("parentKey"))), //
+					coalesce(key("parentKey"), fk("child", key("parentKey"))), //
 					rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))), //
-					greatest(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey")))), //
+					coalesce(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey")))), //
 					"childName" //
 			) //
 					.hasId("grannyId") //
@@ -335,9 +335,9 @@ public class AnalyticStructureBuilderTests {
 									), //
 									eq("grannyId",
 											maxOver(fk("parent", "grannyId"),
-													greatest(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
-													greatest(key("parentKey"), fk("child", key("parentKey"))))), //
-									eq(lit(1), greatest(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))))) //
+													coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+													coalesce(key("parentKey"), fk("child", key("parentKey"))))), //
+									eq(lit(1), coalesce(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))))) //
 							) //
 					);
 		}
@@ -363,17 +363,17 @@ public class AnalyticStructureBuilderTests {
 							fk("parent", "grannyId"), // join
 
 							// child + parent
-							greatest("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
+							coalesce("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
 							// necessary for joining with further children?
-							greatest(lit(1), rn(fk("child", "parentId"))), // completed RN for joining with granny
-							maxOver(fk("parent", "grannyId"), greatest("parentId", fk("child", "parentId"))),
+							coalesce(lit(1), rn(fk("child", "parentId"))), // completed RN for joining with granny
+							maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))),
 
 							// granny table
 							"grannyName", //
 							// (parent + child) --> granny
-							greatest("grannyId", maxOver(fk("parent", "grannyId"), greatest("parentId", fk("child", "parentId")))), // completed
+							coalesce("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed
 							// grannyId
-							greatest(lit(1), greatest(lit(1), rn(fk("child", "parentId")))) // completed RN for granny.
+							coalesce(lit(1), coalesce(lit(1), rn(fk("child", "parentId")))) // completed RN for granny.
 
 					) //
 					.hasId("grannyId") //
@@ -386,8 +386,8 @@ public class AnalyticStructureBuilderTests {
 											eq("parentId", fk("child", "parentId")), //
 											eq(lit(1), rn(fk("child", "parentId"))) //
 									), //
-									eq("grannyId", maxOver(fk("parent", "grannyId"), greatest("parentId", fk("child", "parentId")))), //
-									eq(lit(1), greatest(lit(1), rn(fk("child", "parentId")))) // corrected
+									eq("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), //
+									eq(lit(1), coalesce(lit(1), rn(fk("child", "parentId")))) // corrected
 							) //
 					);
 		}
@@ -405,27 +405,27 @@ public class AnalyticStructureBuilderTests {
 			ForeignKeyPattern<String, ForeignKeyPattern<String, String>> fkChildToGranny = fk("child", fkParentToGranny);
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
-					rn(fkParentToGranny), // -- missing
-					greatest(lit(1), rn(fkParentToGranny)), //
+					rn(fkChildToGranny), // -- missing
+					coalesce(lit(1), rn(fkChildToGranny)), //
 					"parentName", //
 					fkChildToGranny, //
-					greatest(fkParentToGranny, fkChildToGranny), //
+					coalesce(fkParentToGranny, fkChildToGranny), //
 					"childName", //
-					maxOver(fkParentToGranny, greatest(fkParentToGranny, fkChildToGranny)), //
-					greatest("grannyId", maxOver(fkParentToGranny, greatest(fkParentToGranny, fkChildToGranny))), //
-					greatest(lit(1), greatest(lit(1), rn(fkChildToGranny))) //
+					maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny)), //
+					coalesce("grannyId", maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny))), //
+					coalesce(lit(1), coalesce(lit(1), rn(fkChildToGranny))) //
 			).hasId("grannyId") //
 					.hasStructure( //
 							aj( //
-									td("granny"), //
+									av(td("granny")), //
 									aj( //
 											td("parent"), //
 											av(td("child")), //
 											eq(fkParentToGranny, fkChildToGranny), //
 											eq(lit(1), rn(fkChildToGranny)) //
 									), //
-									eq("grannyId", maxOver(fkParentToGranny, greatest(fkParentToGranny, fkChildToGranny))), //
-									eq(lit(1), greatest(lit(1), rn(fkChildToGranny))) //
+									eq("grannyId", maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny))), //
+									eq(lit(1), coalesce(lit(1), rn(fkChildToGranny))) //
 							) //
 					);
 		}
@@ -444,20 +444,20 @@ public class AnalyticStructureBuilderTests {
 				.build();
 
 		ForeignKeyPattern<String, String> fkCityToAddress = fk("city", "addressId");
-		GreatestPattern<String> idJoinCityAndAddress = greatest("addressId", fkCityToAddress);
+		CoalescePattern<String> idJoinCityAndAddress = coalesce("addressId", fkCityToAddress);
 		ForeignKeyPattern<String, String> fkAddressToCustomer = fk("address", "customerId");
 		MaxOverPattern<ForeignKeyPattern<String, String>> fkJoinCityAndAddressToCustomer = maxOver(fkAddressToCustomer,
 				idJoinCityAndAddress);
 		ForeignKeyPattern<String, String> fkTypeToAddress = fk("type", "addressId");
-		GreatestPattern<String> idJoinTypeAndAddress = greatest("addressId", fkTypeToAddress);
+		CoalescePattern<String> idJoinTypeAndAddress = coalesce("addressId", fkTypeToAddress);
 		MaxOverPattern<MaxOverPattern<ForeignKeyPattern<String, String>>> fkJoinCityAndAddressAndTypeToCustomer = maxOver(
 				fkJoinCityAndAddressToCustomer, idJoinTypeAndAddress);
-		GreatestPattern<LiteralPattern> rnJoinAddressToCustomerr = greatest(lit(1), rn(fkAddressToCustomer));
+		CoalescePattern<LiteralPattern> rnJoinAddressToCustomerr = coalesce(lit(1), rn(fkAddressToCustomer));
 		ForeignKeyPattern<String, String> fkOrderToCustomer = fk("order", "customerId");
-		GreatestPattern<String> idJoinOrderAndCustomer = greatest("customerId", fkOrderToCustomer);
-		GreatestPattern<GreatestPattern<LiteralPattern>> rnJoinAddressAndCustomerAndOrder = greatest(
+		CoalescePattern<String> idJoinOrderAndCustomer = coalesce("customerId", fkOrderToCustomer);
+		CoalescePattern<CoalescePattern<LiteralPattern>> rnJoinAddressAndCustomerAndOrder = coalesce(
 				rnJoinAddressToCustomerr, rn(fkOrderToCustomer));
-		GreatestPattern<String> idJoinCustomerAndCityAndAddressAndType = greatest("customerId",
+		CoalescePattern<String> idJoinCustomerAndCityAndAddressAndType = coalesce("customerId",
 				fkJoinCityAndAddressAndTypeToCustomer);
 		RowNumberPattern rnCity = rn(fkCityToAddress);
 		RowNumberPattern rnType = rn(fkTypeToAddress);
@@ -485,8 +485,8 @@ public class AnalyticStructureBuilderTests {
 				fkTypeToAddress, //
 				idJoinTypeAndAddress, //
 				"typeName", //
-				idJoinCustomerAndCityAndAddressAndType, greatest(lit(1), greatest(greatest(lit(1), rnCity), rnType)),
-				greatest(greatest(lit(1), greatest(greatest(lit(1), rnCity), rnType)), rn(fkOrderToCustomer)))
+				idJoinCustomerAndCityAndAddressAndType, coalesce(lit(1), coalesce(coalesce(lit(1), rnCity), rnType)),
+				coalesce(coalesce(lit(1), coalesce(coalesce(lit(1), rnCity), rnType)), rn(fkOrderToCustomer)))
 				.hasId("customerId") //
 				.hasStructure( //
 						aj( //
@@ -501,14 +501,14 @@ public class AnalyticStructureBuilderTests {
 												), //
 												av(td("type")), //
 												eq("addressId", fkTypeToAddress), //
-												eq(greatest(lit(1), rnCity), rnType) //
+												eq(coalesce(lit(1), rnCity), rnType) //
 										), //
 										eq("customerId", fkJoinCityAndAddressAndTypeToCustomer), //
-										eq(lit(1), greatest(greatest(lit(1), rnCity), rnType)) //
+										eq(lit(1), coalesce(coalesce(lit(1), rnCity), rnType)) //
 								), //
 								av(td("order")), //
 								eq("customerId", fkOrderToCustomer), //
-								eq(greatest(lit(1), greatest(greatest(lit(1), rnCity), rnType)), rn(fkOrderToCustomer)) //
+								eq(coalesce(lit(1), coalesce(coalesce(lit(1), rnCity), rnType)), rn(fkOrderToCustomer)) //
 						) //
 				);
 
@@ -531,8 +531,8 @@ public class AnalyticStructureBuilderTests {
 		RowNumberPattern rnOffice = rn(fkOfficeToKeyAccount);
 		RowNumberPattern rnAssistant = rn(fkAssistantToKeyAccount);
 		ForeignKeyPattern<String, String> fkKeyAccountToCustomerId = fk("keyAccount", "customerId");
-		GreatestPattern<String> idJoinAssistantAndKeyAccount = greatest("keyAccountId", fkAssistantToKeyAccount);
-		GreatestPattern<String> idJoinOfficeAndKeyAccount = greatest("keyAccountId", fkOfficeToKeyAccount);
+		CoalescePattern<String> idJoinAssistantAndKeyAccount = coalesce("keyAccountId", fkAssistantToKeyAccount);
+		CoalescePattern<String> idJoinOfficeAndKeyAccount = coalesce("keyAccountId", fkOfficeToKeyAccount);
 		MaxOverPattern<ForeignKeyPattern<String, String>> fkJoinAssistantAndKeyAccountToCustomer = maxOver(
 				fkKeyAccountToCustomerId, idJoinAssistantAndKeyAccount);
 		MaxOverPattern<MaxOverPattern<ForeignKeyPattern<String, String>>> fkJoinOfficeAndAssistantAndKeyAccountToCustomer = maxOver(
@@ -550,10 +550,10 @@ public class AnalyticStructureBuilderTests {
 										), //
 										av(td("office")), //
 										eq("keyAccountId", fkOfficeToKeyAccount), //
-										eq(greatest(lit(1), rnAssistant), rnOffice) //
+										eq(coalesce(lit(1), rnAssistant), rnOffice) //
 								), //
 								eq("customerId", fkJoinOfficeAndAssistantAndKeyAccountToCustomer), //
-								eq(lit(1), greatest(greatest(lit(1), rnAssistant), rnOffice)) //
+								eq(lit(1), coalesce(coalesce(lit(1), rnAssistant), rnOffice)) //
 						), //
 						aj( //
 								td("order"), //
@@ -561,9 +561,9 @@ public class AnalyticStructureBuilderTests {
 								eq("orderId", fk("item", "orderId")), //
 								eq(lit(1), rn(fk("item", "orderId"))) //
 						), //
-						eq("customerId", maxOver(fk("order", "customerId"), greatest("orderId", fk("item", "orderId")))), //
-						eq(greatest(lit(1), greatest(greatest(lit(1), rnAssistant), rnOffice)),
-								greatest(lit(1), rn(fk("item", "orderId")))) //
+						eq("customerId", maxOver(fk("order", "customerId"), coalesce("orderId", fk("item", "orderId")))), //
+						eq(coalesce(lit(1), coalesce(coalesce(lit(1), rnAssistant), rnOffice)),
+								coalesce(lit(1), rn(fk("item", "orderId")))) //
 				) //
 		);
 
@@ -583,14 +583,14 @@ public class AnalyticStructureBuilderTests {
 				.addChildTo("office", "office-room", "room", td -> td.withColumns("roomNumber")) //
 				.build();
 
-		GreatestPattern<LiteralPattern> rnKeyAccount = greatest(lit(1), rn(fk("keyAccount", "customerId")));
+		CoalescePattern<LiteralPattern> rnKeyAccount = coalesce(lit(1), rn(fk("keyAccount", "customerId")));
 		ForeignKeyPattern<String, String> fkAssistantToKeyAccount = fk("assistant", "keyAccountId");
-		GreatestPattern<LiteralPattern> rnAssistant = greatest(lit(1), rn(fkAssistantToKeyAccount));
+		CoalescePattern<LiteralPattern> rnAssistant = coalesce(lit(1), rn(fkAssistantToKeyAccount));
 		ForeignKeyPattern<String, String> fkItemToOrder = fk("item", "orderId");
-		GreatestPattern<LiteralPattern> rnItem = greatest(lit(1), rn(fkItemToOrder));
+		CoalescePattern<LiteralPattern> rnItem = coalesce(lit(1), rn(fkItemToOrder));
 
 		ForeignKeyPattern<String, String> fkRoomToOffice = fk("room", "officeId");
-		GreatestPattern<String> idJoinRoomAndOffice = greatest("officeId", fkRoomToOffice);
+		CoalescePattern<String> idJoinRoomAndOffice = coalesce("officeId", fkRoomToOffice);
 		MaxOverPattern<ForeignKeyPattern<String, String>> fkJoinRommAndOfficeToKeyAccount = maxOver(
 				fk("office", "keyAccountId"), idJoinRoomAndOffice);
 		RowNumberPattern rnRoom = rn(fkRoomToOffice);
@@ -608,7 +608,7 @@ public class AnalyticStructureBuilderTests {
 
 				fk("office", "keyAccountId"), //
 				rn(fk("office", "keyAccountId")), //
-				greatest(rnAssistant, rn(fk("office", "keyAccountId"))), //
+				coalesce(rnAssistant, rn(fk("office", "keyAccountId"))), //
 				"officeName", //
 
 				fk("order", "customerId"), //
@@ -616,37 +616,37 @@ public class AnalyticStructureBuilderTests {
 				"orderName", //
 
 				fkItemToOrder, //
-				greatest("orderId", fkItemToOrder), //
+				coalesce("orderId", fkItemToOrder), //
 				rnItem, //
 				"itemName", //
 
 				fk("shipment", "orderId"), //
-				greatest("orderId", fk("shipment", "orderId")), //
+				coalesce("orderId", fk("shipment", "orderId")), //
 				"shipmentName", //
 
 				fkRoomToOffice, //
 				idJoinRoomAndOffice, //
 				"roomNumber", //
 
-				greatest("keyAccountId", fkAssistantToKeyAccount), //
-				maxOver(fk("keyAccount", "customerId"), greatest("keyAccountId", fkAssistantToKeyAccount)), //
+				coalesce("keyAccountId", fkAssistantToKeyAccount), //
+				maxOver(fk("keyAccount", "customerId"), coalesce("keyAccountId", fkAssistantToKeyAccount)), //
 				fkJoinRommAndOfficeToKeyAccount, //
-				greatest("keyAccountId", fkJoinRommAndOfficeToKeyAccount), //
-				maxOver(maxOver(fk("keyAccount", "customerId"), greatest("keyAccountId", fkAssistantToKeyAccount)),
-						greatest("keyAccountId", fkJoinRommAndOfficeToKeyAccount)), //
-				greatest(greatest(lit(1), rn(fkAssistantToKeyAccount)), greatest(lit(1), rnRoom)), //
-				greatest("customerId",
-						maxOver(maxOver(fk("keyAccount", "customerId"), greatest("keyAccountId", fkAssistantToKeyAccount)),
-								greatest("keyAccountId", fkJoinRommAndOfficeToKeyAccount))), //
-				greatest(lit(1), greatest(greatest(lit(1), rn(fkAssistantToKeyAccount)), greatest(lit(1), rnRoom))), //
-				maxOver(fk("order", "customerId"), greatest("orderId", fkItemToOrder)), //
-				maxOver(maxOver(fk("order", "customerId"), greatest("orderId", fkItemToOrder)),
-						greatest("orderId", fk("shipment", "orderId"))), //
-				greatest("customerId",
-						maxOver(maxOver(fk("order", "customerId"), greatest("orderId", fkItemToOrder)),
-								greatest("orderId", fk("shipment", "orderId")))), //
-				greatest(greatest(lit(1), greatest(greatest(lit(1), rn(fkAssistantToKeyAccount)), greatest(lit(1), rnRoom))),
-						greatest(greatest(lit(1), rn(fkItemToOrder)), rn(fk("shipment", "orderId")))) //
+				coalesce("keyAccountId", fkJoinRommAndOfficeToKeyAccount), //
+				maxOver(maxOver(fk("keyAccount", "customerId"), coalesce("keyAccountId", fkAssistantToKeyAccount)),
+						coalesce("keyAccountId", fkJoinRommAndOfficeToKeyAccount)), //
+				coalesce(coalesce(lit(1), rn(fkAssistantToKeyAccount)), coalesce(lit(1), rnRoom)), //
+				coalesce("customerId",
+						maxOver(maxOver(fk("keyAccount", "customerId"), coalesce("keyAccountId", fkAssistantToKeyAccount)),
+								coalesce("keyAccountId", fkJoinRommAndOfficeToKeyAccount))), //
+				coalesce(lit(1), coalesce(coalesce(lit(1), rn(fkAssistantToKeyAccount)), coalesce(lit(1), rnRoom))), //
+				maxOver(fk("order", "customerId"), coalesce("orderId", fkItemToOrder)), //
+				maxOver(maxOver(fk("order", "customerId"), coalesce("orderId", fkItemToOrder)),
+						coalesce("orderId", fk("shipment", "orderId"))), //
+				coalesce("customerId",
+						maxOver(maxOver(fk("order", "customerId"), coalesce("orderId", fkItemToOrder)),
+								coalesce("orderId", fk("shipment", "orderId")))), //
+				coalesce(coalesce(lit(1), coalesce(coalesce(lit(1), rn(fkAssistantToKeyAccount)), coalesce(lit(1), rnRoom))),
+						coalesce(coalesce(lit(1), rn(fkItemToOrder)), rn(fk("shipment", "orderId")))) //
 
 		).hasId("customerId") //
 				.hasStructure( //
@@ -667,13 +667,13 @@ public class AnalyticStructureBuilderTests {
 														eq(lit(1), rnRoom) //
 												), //
 												eq("keyAccountId", fkJoinRommAndOfficeToKeyAccount), //
-												eq(greatest(lit(1), rn(fkAssistantToKeyAccount)), greatest(lit(1), rnRoom)) //
+												eq(coalesce(lit(1), rn(fkAssistantToKeyAccount)), coalesce(lit(1), rnRoom)) //
 										), //
 										eq("customerId",
 												maxOver(
-														maxOver(fk("keyAccount", "customerId"), greatest("keyAccountId", fkAssistantToKeyAccount)),
-														greatest("keyAccountId", fkJoinRommAndOfficeToKeyAccount))), //
-										eq(lit(1), greatest(greatest(lit(1), rn(fkAssistantToKeyAccount)), greatest(lit(1), rnRoom))) //
+														maxOver(fk("keyAccount", "customerId"), coalesce("keyAccountId", fkAssistantToKeyAccount)),
+														coalesce("keyAccountId", fkJoinRommAndOfficeToKeyAccount))), //
+										eq(lit(1), coalesce(coalesce(lit(1), rn(fkAssistantToKeyAccount)), coalesce(lit(1), rnRoom))) //
 								), //
 								aj( //
 										aj( //
@@ -684,13 +684,13 @@ public class AnalyticStructureBuilderTests {
 										), //
 										av(td("shipment")), //
 										eq("orderId", fk("shipment", "orderId")), //
-										eq(greatest(lit(1), rn(fkItemToOrder)), rn(fk("shipment", "orderId"))) //
+										eq(coalesce(lit(1), rn(fkItemToOrder)), rn(fk("shipment", "orderId"))) //
 								), //
 								eq("customerId",
-										maxOver(maxOver(fk("order", "customerId"), greatest("orderId", fkItemToOrder)),
-												greatest("orderId", fk("shipment", "orderId")))), //
-								eq(greatest(lit(1), greatest(greatest(lit(1), rn(fkAssistantToKeyAccount)), greatest(lit(1), rnRoom))),
-										greatest(greatest(lit(1), rn(fkItemToOrder)), rn(fk("shipment", "orderId")))) //
+										maxOver(maxOver(fk("order", "customerId"), coalesce("orderId", fkItemToOrder)),
+												coalesce("orderId", fk("shipment", "orderId")))), //
+								eq(coalesce(lit(1), coalesce(coalesce(lit(1), rn(fkAssistantToKeyAccount)), coalesce(lit(1), rnRoom))),
+										coalesce(coalesce(lit(1), rn(fkItemToOrder)), rn(fk("shipment", "orderId")))) //
 						) //
 				);
 

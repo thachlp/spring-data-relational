@@ -822,7 +822,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		@Override
 		public String toString() {
-			return "Greatest(" + left + ", " + right + ')';
+			return "Coalesce(" + left + ", " + right + ')';
 		}
 	}
 

@@ -17,32 +17,32 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import org.springframework.lang.Nullable;
 
-record GreatestPattern<C> (Pattern left, Pattern right) implements Pattern {
+record CoalescePattern<C> (Pattern left, Pattern right) implements Pattern {
 
-	public static <C> GreatestPattern<C> greatest(C left, Pattern right) {
-		return new GreatestPattern(left instanceof Pattern leftPattern ? leftPattern : new BasePattern(left), right);
+	public static <C> CoalescePattern<C> coalesce(C left, Pattern right) {
+		return new CoalescePattern(left instanceof Pattern leftPattern ? leftPattern : new BasePattern(left), right);
 	}
 
 	@Override
 	public boolean matches(AnalyticStructureBuilder<?, ?>.Select select,
 			AnalyticStructureBuilder<?, ?>.AnalyticColumn actualColumn) {
 
-		AnalyticStructureBuilder<?, ?>.Coalesce coalesce = extractGreatest(actualColumn);
+		AnalyticStructureBuilder<?, ?>.Coalesce coalesce = extractCoalesce(actualColumn);
 		return coalesce != null && left.matches(select, coalesce.left) && right.matches(select, coalesce.right);
 	}
 
 	@Override
 	public String render() {
-		return "GREATEST(%s, %s)".formatted(left.render(), right.render());
+		return "Coalesce(%s, %s)".formatted(left.render(), right.render());
 	}
 
 	@Nullable
-	private AnalyticStructureBuilder.Coalesce extractGreatest(AnalyticStructureBuilder<?, ?>.AnalyticColumn other) {
+	private AnalyticStructureBuilder.Coalesce extractCoalesce(AnalyticStructureBuilder<?, ?>.AnalyticColumn other) {
 		return AnalyticStructureBuilderSelectAssert.extract(AnalyticStructureBuilder.Coalesce.class, other);
 	}
 
 	@Override
 	public String toString() {
-		return "Greatest(" + left + ", " + right + ')';
+		return "Coalesce(" + left + ", " + right + ')';
 	}
 }
