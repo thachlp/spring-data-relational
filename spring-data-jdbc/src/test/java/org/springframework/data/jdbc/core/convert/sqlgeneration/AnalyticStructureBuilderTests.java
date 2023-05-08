@@ -248,9 +248,9 @@ public class AnalyticStructureBuilderTests {
 			ForeignKeyPattern<String, String> fkChildToParent = fk("child", "parentId");
 			CoalescePattern<String> idOfJoinParentWithChild = coalesce("parentId", fkChildToParent);
 			ForeignKeyPattern<String, String> fkParentToGranny = fk("parent", "grannyId");
-			CoalescePattern<LiteralPattern> rnJoinParentWithChild = coalesce(lit(1), rn(fkParentToGranny));
 			MaxOverPattern<ForeignKeyPattern<String, String>> fkJoinParentWithChildToGranny = maxOver(fkParentToGranny,
 					idOfJoinParentWithChild);
+			CoalescePattern<LiteralPattern> rnJoinParentWithChild = coalesce(lit(1), rn(fkJoinParentWithChildToGranny)); // todo: should be ordered by key and rownumber
 
 			assertThat(structure).hasExactColumns( //
 
@@ -276,7 +276,8 @@ public class AnalyticStructureBuilderTests {
 					coalesce("grannyId", fkJoinParentWithChildToGranny), // grannyId
 					// for every column
 					rnJoinParentWithChild, //
-					coalesce(lit(1), coalesce(lit(1), rn(fkChildToParent))) //
+					coalesce(lit(1), coalesce(lit(1), rn(fkChildToParent))) // <-- this is BS isn't it?
+					// the rn over the fkChildToParent restarts for each parent, but here we are trying to create a rownumber over fkParentGranny
 			) //
 					.hasId("grannyId") //
 					.hasStructure( //
@@ -405,7 +406,7 @@ public class AnalyticStructureBuilderTests {
 			ForeignKeyPattern<String, ForeignKeyPattern<String, String>> fkChildToGranny = fk("child", fkParentToGranny);
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
-					rn(fkChildToGranny), // -- missing
+					rn(fkChildToGranny), //
 					coalesce(lit(1), rn(fkChildToGranny)), //
 					"parentName", //
 					fkChildToGranny, //
