@@ -183,8 +183,8 @@ public class StructureToSelect {
 					.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
 
 			if (condition != null
-					&& parent instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td
-					&& td.getTable().equals(queryStructure.getRoot())) {
+					&& parent instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticView av
+					&&((AnalyticStructureBuilder.TableDefinition) av.getParent()).getTable().equals(queryStructure.getRoot())) {
 
 				System.out.println("applying condition on join");
 				return joinThingy.where(condition.apply(parentTable));

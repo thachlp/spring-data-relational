@@ -61,8 +61,9 @@ class AnalyticSqlGeneratorTests {
 
 			String sql = sqlGenerator(entity).findById();
 
-			Assertions.assertThat(sql).isNotNull();
+			System.out.println(sql);
 
+			Assertions.assertThat(sql).isNotNull();
 			assertThatParsed(sql).hasWhereClause();
 		}
 	}

@@ -506,12 +506,6 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			} else {
 				rowNumber = new RowNumber(foreignKey, Collections.singletonList(new Coalesce(parent.getRowNumber(), child.getRowNumber())));
 			}
-			System.out.println("joining " + parent +  " and " + child);
-			System.out.println("rn " + rowNumber);
-			System.out.println("fk " +foreignKey);
-
-			// Not found
-			//Coalesce(lit(1), RN([Max(FK(parent, grannyId)) over (partition by [Coalesce(parentId, FK(child, parentId))])]))
 
 			conditions.add(new JoinCondition(derived(parent.getRowNumber()), derived(child.getRowNumber())));
 
