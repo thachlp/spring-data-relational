@@ -405,14 +405,14 @@ public class AnalyticStructureBuilderTests {
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
 					rn(fkChildToGranny), //
-					coalesce(lit(1), rn(fkChildToGranny)), //
+					rn(maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny))), //
 					"parentName", //
 					fkChildToGranny, //
 					coalesce(fkParentToGranny, fkChildToGranny), //
 					"childName", //
 					maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny)), //
 					coalesce("grannyId", maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny))), //
-					coalesce(lit(1), coalesce(lit(1), rn(fkChildToGranny))) //
+					coalesce(lit(1), rn(maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny)))) //
 			).hasId("grannyId") //
 					.hasStructure( //
 							aj( //
@@ -424,7 +424,7 @@ public class AnalyticStructureBuilderTests {
 											eq(lit(1), rn(fkChildToGranny)) //
 									), //
 									eq("grannyId", maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny))), //
-									eq(lit(1), coalesce(lit(1), rn(fkChildToGranny))) //
+									eq(lit(1), rn(maxOver(fkParentToGranny, coalesce(fkParentToGranny, fkChildToGranny)))) //
 							) //
 					);
 		}
