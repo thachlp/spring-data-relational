@@ -254,35 +254,33 @@ public class AnalyticStructureBuilderTests {
 
 			assertThat(structure).hasExactColumns( //
 
-					// child columns
-					"childName", //
-					fkChildToParent, //
+							// child columns
+							"childName", //
+							fkChildToParent, //
 
-					// parent
-					key("parentKey"), "parentName", //
-					fkParentToGranny, //
+							// parent
+							key("parentKey"), "parentName", //
+							fkParentToGranny, //
 
-					// join of parent + child
-					rn(fkChildToParent), // rownumber for the join itself. should be in the result because it is a single
-																// valued indicator if a child is present in this row. Relevant when there are
-																// siblings
-					idOfJoinParentWithChild, // guarantees a parent id in all rows and may serve as a join
-																		// column for siblings of child.
-					fkJoinParentWithChildToGranny, //
+							// join of parent + child
+							rn(fkChildToParent), // rownumber for the join itself. should be in the result because it is a single
+							// valued indicator if a child is present in this row. Relevant when there are
+							// siblings
+							idOfJoinParentWithChild, // guarantees a parent id in all rows and may serve as a join
+							// column for siblings of child.
+							fkJoinParentWithChildToGranny, //
 
-					// granny
-					"grannyName", //
-					// join of granny + (parent + child)
-					coalesce("grannyId", fkJoinParentWithChildToGranny), // grannyId
-					// for every column
-					rnJoinParentWithChild, //
-					coalesce(lit(1), coalesce(lit(1), rn(fkChildToParent))) // <-- this is BS isn't it?
-					// the rn over the fkChildToParent restarts for each parent, but here we are trying to create a rownumber over fkParentGranny
-			) //
+							// granny
+							"grannyName", //
+							// join of granny + (parent + child)
+							coalesce("grannyId", fkJoinParentWithChildToGranny), // grannyId
+							rnJoinParentWithChild, //
+							rn(fkJoinParentWithChildToGranny)// TODO: order by does not get tested
+					) //
 					.hasId("grannyId") //
 					.hasStructure( //
 							aj( //
-									td("granny"), //
+									av(td("granny")), //
 									aj( //
 											td("parent"), //
 											av(td("child")), //
@@ -290,7 +288,7 @@ public class AnalyticStructureBuilderTests {
 											eq(lit(1), rn(fkChildToParent)) //
 									), //
 									eq("grannyId", fkJoinParentWithChildToGranny), //
-									eq(lit(1), rnJoinParentWithChild) //
+									eq(lit(1), rn(fkJoinParentWithChildToGranny)) //
 							) //
 					);
 		}

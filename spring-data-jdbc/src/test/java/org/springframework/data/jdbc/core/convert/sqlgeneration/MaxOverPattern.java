@@ -17,6 +17,8 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
 import org.springframework.lang.Nullable;
 
+import java.util.Arrays;
+
 record MaxOverPattern<C> (Pattern expression, Pattern ... partitionBy) implements Pattern {
 
 	public static <C> MaxOverPattern<C> maxOver(C expression, Pattern ... partitionBy) {
@@ -43,7 +45,7 @@ record MaxOverPattern<C> (Pattern expression, Pattern ... partitionBy) implement
 
 	@Override
 	public String render() {
-		return "Max(%s) over (partition by %s)".formatted(expression.render(), partitionBy);
+		return "Max(%s) over (partition by %s)".formatted(expression.render(), Arrays.toString( partitionBy));
 	}
 
 	@Nullable

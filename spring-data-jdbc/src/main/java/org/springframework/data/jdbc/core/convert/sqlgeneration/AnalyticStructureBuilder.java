@@ -356,7 +356,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 	class AnalyticJoin extends Select {
 
 		private final Select parent;
-		private Coalesce rowNumber;
+		private AnalyticColumn rowNumber;
 		private Select child;
 
 		// TODO: this is really more of an effective id. Make sure to keep the rownumber separately
@@ -501,8 +501,18 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 			parent.buildRowNumbers();
 			child.buildRowNumbers();
+			if (foreignKey.isEmpty()) {
+				rowNumber = new Coalesce(parent.getRowNumber(), child.getRowNumber());
+			} else {
+				rowNumber = new RowNumber(foreignKey, Collections.singletonList(new Coalesce(parent.getRowNumber(), child.getRowNumber())));
+			}
+			System.out.println("joining " + parent +  " and " + child);
+			System.out.println("rn " + rowNumber);
+			System.out.println("fk " +foreignKey);
 
-			rowNumber = new Coalesce(parent.getRowNumber(), child.getRowNumber());
+			// Not found
+			//Coalesce(lit(1), RN([Max(FK(parent, grannyId)) over (partition by [Coalesce(parentId, FK(child, parentId))])]))
+
 			conditions.add(new JoinCondition(derived(parent.getRowNumber()), derived(child.getRowNumber())));
 
 		}
