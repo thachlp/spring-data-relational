@@ -304,7 +304,8 @@ public class AnalyticStructureBuilderTests {
 
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
-					coalesce(lit(1), coalesce(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))))),
+					coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+							coalesce(key("parentKey"), fk("child", key("parentKey")))))),
 					coalesce("grannyId",
 							maxOver(fk("parent", "grannyId"),
 									coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
@@ -318,7 +319,8 @@ public class AnalyticStructureBuilderTests {
 					fk("child", key("parentKey")), //
 					coalesce(key("parentKey"), fk("child", key("parentKey"))), //
 					rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))), //
-					coalesce(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey")))), //
+					rn(maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+							coalesce(key("parentKey"), fk("child", key("parentKey"))))), //
 					"childName" //
 			) //
 					.hasId("grannyId") //
@@ -336,7 +338,8 @@ public class AnalyticStructureBuilderTests {
 											maxOver(fk("parent", "grannyId"),
 													coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
 													coalesce(key("parentKey"), fk("child", key("parentKey"))))), //
-									eq(lit(1), coalesce(lit(1), rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))))) //
+									eq(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+											coalesce(key("parentKey"), fk("child", key("parentKey")))))) //
 							) //
 					);
 		}
