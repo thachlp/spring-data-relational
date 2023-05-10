@@ -192,7 +192,7 @@ public class AnalyticStructureBuilderTests {
 							// child + parent
 							coalesce("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
 																															// necessary for joining with further children?
-							coalesce(lit(1), rn(fk("child", "parentId"))), // completed RN for joining with granny
+							rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed RN for joining with granny
 							maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))),
 
 							// granny table
@@ -200,7 +200,7 @@ public class AnalyticStructureBuilderTests {
 							// (parent + child) --> granny
 							coalesce("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed
 																																																											// grannyId
-							coalesce(lit(1), coalesce(lit(1), rn(fk("child", "parentId")))) // completed RN for granny.
+							coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))))) // completed RN for granny.
 
 					) //
 					.hasId("grannyId") //
@@ -214,7 +214,7 @@ public class AnalyticStructureBuilderTests {
 											eq(lit(1), rn(fk("child", "parentId"))) //
 									), //
 									eq("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), //
-									eq(lit(1), coalesce(lit(1), rn(fk("child", "parentId")))) // corrected
+									eq(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))))) // corrected
 							) //
 					);
 		}
