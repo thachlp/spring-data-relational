@@ -172,7 +172,14 @@ public class StructureToSelect {
 
 			AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Select parent = analyticJoin
 					.getParent();
-			TableLike parentTable = tableFor(parent);
+			TableLike parentTable;
+			if (parent instanceof AnalyticStructureBuilder.TableDefinition td) {
+				parentTable = tableFor(parent);
+
+			} else {
+				SelectConstruction parentSelect = createUnorderedSelect(parent, NOOP_ID_REGISTRATION);
+				parentTable = InlineQuery.create(parentSelect.findAll(), getAliasFor(parent));
+			}
 			Collection<Expression> columns = createSelectExpressionList(analyticJoin.getColumns(), parentTable,
 					registerIdExpression);
 
@@ -181,14 +188,6 @@ public class StructureToSelect {
 			Condition joinCondition = createJoinCondition(parentTable, childQuery, analyticJoin);
 			SelectBuilder.SelectFromAndJoinCondition joinThingy = selectAndParent
 					.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
-
-			if (condition != null
-					&& parent instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticView av
-					&&((AnalyticStructureBuilder.TableDefinition) av.getParent()).getTable().equals(queryStructure.getRoot())) {
-
-				System.out.println("applying condition on join");
-				return joinThingy.where(condition.apply(parentTable));
-			}
 
 			return joinThingy;
 		}
@@ -244,14 +243,14 @@ public class StructureToSelect {
 
 				return createRownumberExpression(table, rn);
 			}
-			if (analyticColumn instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Coalesce gt) {
+			if (analyticColumn instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.Coalesce coalesce) {
 
-				Expression leftColumn = createColumn(table, gt.left, NOOP_ID_REGISTRATION);
-				Expression rightColumn = createColumn(table, gt.right, NOOP_ID_REGISTRATION);
+				Expression leftColumn = createColumn(table, coalesce.left, NOOP_ID_REGISTRATION);
+				Expression rightColumn = createColumn(table, coalesce.right, NOOP_ID_REGISTRATION);
 
 				SimpleFunction column = SimpleFunction.create("COALESCE", Arrays.asList(leftColumn, rightColumn))
-						.as(getAliasFor(gt));
-				PersistentPropertyPathExtension path = gt.left.getColumn();
+						.as(getAliasFor(coalesce));
+				PersistentPropertyPathExtension path = coalesce.left.getColumn();
 				if (path != null) {
 					registerIdExpression.accept(path, column);
 				}
@@ -343,8 +342,10 @@ public class StructureToSelect {
 			SelectBuilder.SelectFromAndJoin from = StatementBuilder.select(selectExpressionList).from(table);
 
 			if (condition != null
-					&& select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td
-					&& td.getTable().equals(queryStructure.getRoot())) {
+					&& select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticView av
+					&& ((AnalyticStructureBuilder.TableDefinition)av.getParent()).getTable().equals(queryStructure.getRoot())) {
+
+				System.out.println("apply join condition");
 
 				return from.where(condition.apply(table));
 			}
@@ -358,6 +359,7 @@ public class StructureToSelect {
 			Collection<Expression> selectExpressionList = new ArrayList<>();
 
 			for (AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn analyticColumn : analyticColumns) {
+
 				Expression column = createColumn(table, analyticColumn, registerIdExpression);
 				selectExpressionList.add(column);
 			}

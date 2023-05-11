@@ -478,10 +478,10 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			child.getForeignKey().forEach(fk -> {
 
 				AnalyticColumn parentId = parentIdsIterator.next();
-				// add a greatest expression between the parent.id and the fk, to have a non-null id for this join
-				columnsFromJoin.add(new Coalesce(parentId, fk, parentId));
+				// add a coalesce expression between the parent.id and the fk, to have a non-null id for this join
+				columnsFromJoin.add(new Coalesce(derived(parentId), fk, parentId));
 				// add the parent.id child.fk relation to the join condition
-				conditions.add(new JoinCondition(parentId, fk));
+				conditions.add(new JoinCondition(derived(parentId), fk));
 			});
 
 			// create max expressions, so all rows relating to this.parent have populated fk columns
@@ -501,6 +501,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 			parent.buildRowNumbers();
 			child.buildRowNumbers();
+
 			if (foreignKey.isEmpty()) {
 				rowNumber = new Coalesce(parent.getRowNumber(), child.getRowNumber());
 			} else {

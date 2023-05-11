@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.data.jdbc.core.convert.sqlgeneration.AggregateToStructure;
 import org.springframework.data.jdbc.core.convert.sqlgeneration.AliasFactory;
 import org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticSqlGenerator;
@@ -80,7 +81,13 @@ public class AggregateReader<T> {
 
 		Iterator<T> result = jdbcTemplate.query(sql, Map.of("id", id), extractor).iterator();
 
-		return result.hasNext() ? result.next() : null;
+		T returnValue = result.hasNext() ? result.next() : null;
+
+		if (result.hasNext()) {
+			throw new IncorrectResultSizeDataAccessException(1);
+		}
+
+		return returnValue;
 	}
 
 	public Iterable<T> findAllById(Iterable<?> ids) {
