@@ -38,4 +38,27 @@ class SqlAssertUnitTests {
 						.selectsFrom("wrong table") //
 		);
 	}
+
+	@Test
+	void findWhereClause() {
+		assertThatParsed("select * from x where 1 = 2").hasWhereClause();
+	}
+
+	@Test
+	void findWhereClauseNegative() {
+		assertThatParsed("select * from x").hasNoWhereClause();
+	}
+
+	@Test
+	void findOriginalSelectAsSubselect() {
+		assertThatParsed("select * from x where 1 = 2").hasSubselectFrom("x").hasWhereClause();
+	}
+	@Test
+	void findSubSelectInFrom() {
+		assertThatParsed("select * from (select * from x where 1 = 2) y").hasSubselectFrom("x").hasWhereClause();
+	}
+	@Test
+	void findSubSelectInJoin() {
+		assertThatParsed("select * from z join (select * from x where 1 = 2) y").hasSubselectFrom("x").hasWhereClause();
+	}
 }

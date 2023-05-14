@@ -22,7 +22,9 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
@@ -49,19 +51,19 @@ import org.springframework.data.relational.core.mapping.RelationalMappingContext
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
 
-public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
+public class SqlAssert extends AbstractAssert<SqlAssert, PlainSelect> {
 
 	private AliasFactory aliasFactory;
 
-	protected SqlAssert(Statement actual, Class<?> selfType) {
-		super(actual, selfType);
+	protected SqlAssert(PlainSelect actual) {
+		super(actual, SqlAssert.class);
 	}
 
 	static SqlAssert assertThatParsed(String actualSql) {
 
 		try {
 			Statement parsed = CCJSqlParserUtil.parse(actualSql);
-			return new SqlAssert(parsed, SqlAssert.class);
+			return new SqlAssert((PlainSelect) ((Select) parsed).getSelectBody());
 		} catch (JSQLParserException e) {
 			Assertions.fail("Couldn't parse '%s'".formatted(actualSql));
 		}
@@ -110,22 +112,22 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 		}).collect(Collectors.joining(", "));
 
 		if (!notFound.isEmpty() && !parsedColumns.isEmpty()) {
-			throw failure(failureMessage, getSelect().toString(), columnsSpec, notFoundString, parsedColumns);
+			throw failure(failureMessage, actual.toString(), columnsSpec, notFoundString, parsedColumns);
 		}
 		if (!notFound.isEmpty()) {
-			throw failure(failureMessage, getSelect().toString(), columnsSpec, notFoundString);
+			throw failure(failureMessage, actual.toString(), columnsSpec, notFoundString);
 		} else {
-			throw failure(failureMessage, getSelect().toString(), columnsSpec, parsedColumns);
+			throw failure(failureMessage, actual.toString(), columnsSpec, parsedColumns);
 		}
 
 	}
 
 	public SqlAssert assignsAliasesExactlyOnce() {
 
-		List<SelectItem> wronglyAliasedSelectItems = allInternalSelectItems(getSelect()).filter(si -> {
+		List<SelectItem> wronglyAliasedSelectItems = allInternalSelectItems(actual).filter(si -> {
 			if (si instanceof SelectExpressionItem selectExpressionItem) {
 				if (selectExpressionItem.getExpression().toString().matches("^[A-Z]{1,2}\\d{4}(_[A-Z]*)?$"))
-					return selectExpressionItem.getAlias() !=null;
+					return selectExpressionItem.getAlias() != null;
 				else
 					return !selectExpressionItem.getAlias().getName().matches("^[A-Z]{1,2}\\d{4}(_[A-Z]*)?$");
 			}
@@ -139,7 +141,7 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 
 	public SqlAssert selectsInternally(String pathToEntity, String columnName) {
 
-		Optional<Column> optionalColumn = allInternalSelectItems(getSelect()).flatMap(si -> {
+		Optional<Column> optionalColumn = allInternalSelectItems(actual).flatMap(si -> {
 
 			if (si instanceof SelectExpressionItem sei) {
 				if (sei.getExpression()instanceof Column c)
@@ -165,15 +167,28 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 
 	@NotNull
 	private static Stream<PlainSelect> getSubSelects(PlainSelect select) {
+
+
+		Stream<PlainSelect> fromStream;
+
+		FromItem fromItem = select.getFromItem();
+		if (fromItem instanceof SubSelect ss) {
+			fromStream = Stream.of((PlainSelect) ((SubSelect) ss).getSelectBody());
+		} else {
+			fromStream = Stream.empty();
+		}
+
 		return Stream.of(select).flatMap(s -> {
 			List<Join> joins = s.getJoins();
 			if (joins == null) {
-				return Stream.empty();
+				return fromStream;
 			}
-			return joins.stream() //
+
+			Stream<PlainSelect> joinStream = joins.stream() //
 					.map(j -> j.getRightItem()) //
 					.filter(fi -> fi instanceof SubSelect) //
 					.map(ss -> (PlainSelect) ((SubSelect) ss).getSelectBody());
+			return Stream.concat(fromStream, joinStream);
 		});
 	}
 
@@ -183,7 +198,7 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 	private List<ParsedColumn> collectActualColumns() {
 
 		List<ParsedColumn> parsedColumns = new ArrayList<>();
-		for (SelectItem selectItem : getSelect().getSelectItems()) {
+		for (SelectItem selectItem : actual.getSelectItems()) {
 			selectItem.accept(new SelectItemVisitorAdapter() {
 				@Override
 				public void visit(SelectExpressionItem item) {
@@ -197,14 +212,10 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 
 	public SqlAssert selectsFrom(String tableName) {
 
-		assertThat(getSelect().getFromItem().toString()) //
+		assertThat(actual.getFromItem().toString()) //
 				.isEqualTo(tableName);
 
 		return this;
-	}
-
-	private PlainSelect getSelect() {
-		return (PlainSelect) ((Select) actual).getSelectBody();
 	}
 
 	static ColumnsSpec from(RelationalMappingContext context, RelationalPersistentEntity<?> entity) {
@@ -218,17 +229,34 @@ public class SqlAssert extends AbstractAssert<SqlAssert, Statement> {
 
 	public SqlAssert hasWhereClause() {
 
-		Expression where = getSelect().getWhere();
+		Expression where = actual.getWhere();
 		assertThat(where).isNotNull();
 
 		return this;
 	}
+
 	public SqlAssert hasNoWhereClause() {
 
-		Expression where = getSelect().getWhere();
+		Expression where = actual.getWhere();
 		assertThat(where).isNull();
 
 		return this;
+	}
+
+	public SqlAssert hasSubselectFrom(String tableName) {
+
+		System.out.println("subselects of " + actual);
+		Optional<PlainSelect> select = allSelects(actual) //
+				.filter(ps -> {
+					System.out.println("filtering " + ps);
+					FromItem from = ps.getFromItem();
+					return from instanceof Table table && table.getName().equals(tableName);
+				}) //
+				.findFirst();
+
+		assertThat(select).describedAs("expected subselect from " + tableName + " to be present in " + select).isNotEmpty();
+
+		return new SqlAssert(select.get());
 	}
 
 	static class ColumnsSpec {

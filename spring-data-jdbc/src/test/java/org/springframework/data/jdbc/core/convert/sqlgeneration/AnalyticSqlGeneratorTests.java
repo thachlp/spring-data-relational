@@ -47,7 +47,7 @@ class AnalyticSqlGeneratorTests {
 			RelationalPersistentEntity<?> dummyEntity = getRequiredPersistentEntity(DummyEntity.class);
 
 			String sql = sqlGenerator(dummyEntity).findById();
-
+			System.out.println(sql);
 			Assertions.assertThat(sql).isNotNull();
 
 			assertThatParsed(sql).hasWhereClause();
@@ -64,7 +64,8 @@ class AnalyticSqlGeneratorTests {
 			System.out.println(sql);
 
 			Assertions.assertThat(sql).isNotNull();
-			assertThatParsed(sql).hasWhereClause();
+
+			assertThatParsed(sql).hasSubselectFrom("set_reference").hasWhereClause();
 		}
 	}
 
