@@ -341,13 +341,22 @@ public class StructureToSelect {
 
 			SelectBuilder.SelectFromAndJoin from = StatementBuilder.select(selectExpressionList).from(table);
 
-			if (condition != null
-					&& select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticView av
-					&& ((AnalyticStructureBuilder.TableDefinition)av.getParent()).getTable().equals(queryStructure.getRoot())) {
+			if (condition != null) {
+				AnalyticStructureBuilder.TableDefinition tableDefinition = null;
+				if (select instanceof AnalyticStructureBuilder.TableDefinition td) {
+					tableDefinition =td;
+				}
+				if (select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticView av) {
+					tableDefinition = ((AnalyticStructureBuilder.TableDefinition) av.getParent());
+				}
 
-				System.out.println("apply join condition");
 
-				return from.where(condition.apply(table));
+				if (tableDefinition != null && tableDefinition.getTable().equals(queryStructure.getRoot())) {
+
+					System.out.println("apply join condition");
+
+					return from.where(condition.apply(table));
+				}
 			}
 			return from;
 		}
