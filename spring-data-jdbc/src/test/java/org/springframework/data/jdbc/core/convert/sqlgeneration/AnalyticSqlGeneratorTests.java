@@ -16,9 +16,11 @@
 
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.SqlAssert.*;
 
-import org.assertj.core.api.Assertions;
+import java.util.Set;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.annotation.Id;
@@ -26,8 +28,6 @@ import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.relational.core.dialect.AnsiDialect;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
-
-import java.util.Set;
 
 class AnalyticSqlGeneratorTests {
 
@@ -48,7 +48,7 @@ class AnalyticSqlGeneratorTests {
 
 			String sql = sqlGenerator(dummyEntity).findById();
 			System.out.println(sql);
-			Assertions.assertThat(sql).isNotNull();
+			assertThat(sql).isNotNull();
 
 			assertThatParsed(sql).hasWhereClause();
 
@@ -63,7 +63,7 @@ class AnalyticSqlGeneratorTests {
 
 			System.out.println(sql);
 
-			Assertions.assertThat(sql).isNotNull();
+			assertThat(sql).isNotNull();
 
 			assertThatParsed(sql).hasSubselectFrom("set_reference").hasWhereClause();
 		}
@@ -92,6 +92,8 @@ class AnalyticSqlGeneratorTests {
 
 			String sql = sqlGenerator(singleRefEntity).findAll();
 
+			System.out.println(sql);
+
 			assertThatParsed(sql) //
 					.withAliases(aliasFactory) //
 					.hasExactColumns( //
@@ -99,15 +101,26 @@ class AnalyticSqlGeneratorTests {
 									.property("dummy.id") //
 									.property("dummy.aColumn") //
 									.alias("RN0001") //
-									.fk("FK0001_SINGLEREFERENCEID")
-									.greatest()
-									.greatest()
-					).assignsAliasesExactlyOnce() //
-					.selectsInternally("dummy", "single_reference")
+									.fk("FK0001_SINGLEREFERENCEID").greatest().greatest())
+					.assignsAliasesExactlyOnce() //
+					.selectsInternally("dummy_entity", "single_reference");
+		}
 
-			;
+		@Test
+		void allJoinsAreLateral() {
+
+			RelationalPersistentEntity<?> singleRefEntity = getRequiredPersistentEntity(SingleReference.class);
+
+			String sql = sqlGenerator(singleRefEntity).findAll();
+
+			assertThat(sql).contains("JOIN LATERAL");
+			assertThat(sql.replaceAll("JOIN LATERAL", "")) //
+					.describedAs("all joins should use lateral") //
+					.doesNotContain("JOIN");
+
 		}
 	}
+
 	private ColumnsSpec from(RelationalPersistentEntity<?> entity) {
 		return SqlAssert.from(context, entity);
 	}
@@ -136,6 +149,7 @@ class AnalyticSqlGeneratorTests {
 		@Id Long id;
 		DummyEntity dummy;
 	}
+
 	static class SetReference {
 
 		@Id Long id;

@@ -19,6 +19,7 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 import static org.assertj.core.api.Assertions.*;
 
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
@@ -31,6 +32,7 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SelectItemVisitorAdapter;
+import net.sf.jsqlparser.statement.select.SpecialSubSelect;
 import net.sf.jsqlparser.statement.select.SubSelect;
 
 import java.util.ArrayList;
@@ -139,20 +141,63 @@ public class SqlAssert extends AbstractAssert<SqlAssert, PlainSelect> {
 		return this;
 	}
 
-	public SqlAssert selectsInternally(String pathToEntity, String columnName) {
+	public SqlAssert selectsInternally(String tableName, String columnName) {
 
-		Optional<Column> optionalColumn = allInternalSelectItems(actual).flatMap(si -> {
+		Optional<Column> optionalColumn = allSelects(actual)//
+				.flatMap( //
+						ps -> //
+						matchingTables(ps, tableName) //
+								.map(t -> tuple(ps, getAliasOrName(t)))) //
+				.flatMap(
+						tuple -> matchingColumns((PlainSelect) tuple.toList().get(0), (String) tuple.toList().get(1), columnName))
+				.findFirst();
 
-			if (si instanceof SelectExpressionItem sei) {
-				if (sei.getExpression()instanceof Column c)
-					return Stream.of(c);
-			}
-			return Stream.empty();
-		}).filter(c -> c.getColumnName().equals(columnName)).findFirst();
-
-		assertThat(optionalColumn).describedAs("No column of name " + columnName + " found.").isPresent();
+		assertThat(optionalColumn).describedAs("No column of name " + columnName + " found in " + actual.toString())
+				.isPresent();
 
 		return this;
+	}
+
+	private Stream<Column> matchingColumns(PlainSelect plainSelect, String tableName, String columnName) {
+
+		return plainSelect.getSelectItems().stream() //
+				.map(item -> ((SelectExpressionItem) item).getExpression()).filter( //
+						item -> item instanceof Column c //
+								&& c.getColumnName().equals(columnName) //
+								&& ( //
+								c.getTable() == null //
+										|| c.getTable().getName().equals(tableName) //
+								) //
+				).map(si -> (Column) si);
+	}
+
+	private String getAliasOrName(Table table) {
+		String result = table.getName();
+		Alias alias = table.getAlias();
+		if (alias != null) {
+			return alias.getName();
+		}
+		return result;
+	}
+
+	private Stream<Table> matchingTables(PlainSelect plainSelect, String tableName) {
+
+		FromItem fromItem = plainSelect.getFromItem();
+		List<Join> listOfJoins = plainSelect.getJoins();
+		Stream<Table> fromStream = getOptionalTable(tableName, fromItem).stream();
+
+		if (listOfJoins == null) {
+			return fromStream;
+		}
+
+		Stream<Table> joins = listOfJoins.stream().flatMap(j -> getOptionalTable(tableName, j.getRightItem()).stream());
+
+		return Stream.concat(fromStream, joins);
+	}
+
+	@NotNull
+	private static Optional<Table> getOptionalTable(String tableName, FromItem fromItem) {
+		return Optional.ofNullable(fromItem instanceof Table t && t.getName().equals(tableName) ? t : null);
 	}
 
 	private Stream<SelectItem> allInternalSelectItems(PlainSelect select) {
@@ -168,15 +213,9 @@ public class SqlAssert extends AbstractAssert<SqlAssert, PlainSelect> {
 	@NotNull
 	private static Stream<PlainSelect> getSubSelects(PlainSelect select) {
 
-
-		Stream<PlainSelect> fromStream;
-
 		FromItem fromItem = select.getFromItem();
-		if (fromItem instanceof SubSelect ss) {
-			fromStream = Stream.of((PlainSelect) ((SubSelect) ss).getSelectBody());
-		} else {
-			fromStream = Stream.empty();
-		}
+
+		Stream<PlainSelect> fromStream = subSelects(fromItem);
 
 		return Stream.of(select).flatMap(s -> {
 			List<Join> joins = s.getJoins();
@@ -186,10 +225,22 @@ public class SqlAssert extends AbstractAssert<SqlAssert, PlainSelect> {
 
 			Stream<PlainSelect> joinStream = joins.stream() //
 					.map(j -> j.getRightItem()) //
-					.filter(fi -> fi instanceof SubSelect) //
-					.map(ss -> (PlainSelect) ((SubSelect) ss).getSelectBody());
+					.flatMap(ss -> subSelects(ss));
 			return Stream.concat(fromStream, joinStream);
 		});
+	}
+
+	@NotNull
+	private static Stream<PlainSelect> subSelects(FromItem fromItem) {
+		Stream<PlainSelect> fromStream;
+		if (fromItem instanceof SubSelect ss) {
+			fromStream = Stream.of((PlainSelect) ss.getSelectBody());
+		} else if (fromItem instanceof SpecialSubSelect ss) {
+			fromStream = Stream.of((PlainSelect) ss.getSubSelect().getSelectBody());
+		} else {
+			fromStream = Stream.empty();
+		}
+		return fromStream;
 	}
 
 	/**

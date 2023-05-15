@@ -16,9 +16,11 @@
 
 package org.springframework.data.jdbc.core.convert.sqlgeneration;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.SqlAssert.*;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class SqlAssertUnitTests {
@@ -53,12 +55,74 @@ class SqlAssertUnitTests {
 	void findOriginalSelectAsSubselect() {
 		assertThatParsed("select * from x where 1 = 2").hasSubselectFrom("x").hasWhereClause();
 	}
+
 	@Test
 	void findSubSelectInFrom() {
 		assertThatParsed("select * from (select * from x where 1 = 2) y").hasSubselectFrom("x").hasWhereClause();
 	}
+
 	@Test
 	void findSubSelectInJoin() {
 		assertThatParsed("select * from z join (select * from x where 1 = 2) y").hasSubselectFrom("x").hasWhereClause();
+	}
+
+	@Nested
+	class SelectsInternally {
+
+		@Test
+		void failsWhenColumnNotPresent() {
+
+			assertThatThrownBy(() -> assertThatParsed("select z from y").selectsInternally("y", "x"))
+					.isInstanceOf(AssertionError.class);
+		}
+		@Test
+		void failsWhenTableNotPresent() {
+
+			assertThatThrownBy(() -> assertThatParsed("select x from z").selectsInternally("y", "x"))
+					.isInstanceOf(AssertionError.class);
+		}
+
+		@Test
+		void failsOnWrongTable() {
+
+			assertThatThrownBy(() -> assertThatParsed("select z.x, y.u from y, z").selectsInternally("y", "x"))
+					.isInstanceOf(AssertionError.class);
+		}
+
+		@Test
+		void inSimpleSelect() {
+			assertThatParsed("select x from y").selectsInternally("y", "x");
+		}
+
+
+		@Test
+		void inSubSelect() {
+			assertThatParsed("select * from (select x from y) z").selectsInternally("y", "x");
+		}
+
+
+		@Test
+		void inJoinedSubSelect() {
+			assertThatParsed("select * from u join (select x from y) z").selectsInternally("y", "x");
+		}
+
+		@Test
+		void inLateralSubSelect() {
+			assertThatParsed("select * from u join lateral (select x from y) z").selectsInternally("y", "x");
+		}
+		@Test
+		void withTableAlias() {
+			assertThatParsed("select x from y as z").selectsInternally("y", "x");
+		}
+
+		@Test
+		void withColumnAlias() {
+			assertThatParsed("select x as z from y").selectsInternally("y", "x");
+		}
+
+		@Test
+		void withTablePrefix() {
+			assertThatParsed("select y.x from y").selectsInternally("y", "x");
+		}
 	}
 }

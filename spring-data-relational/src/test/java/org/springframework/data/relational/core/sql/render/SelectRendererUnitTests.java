@@ -321,6 +321,29 @@ class SelectRendererUnitTests {
 				+ "JOIN department ON employee.department_id = department.id ORDER BY employee.id");
 	}
 
+
+	@Test
+	void renderJoinWithLateralInlineQueries() {
+
+		Table employee = SQL.table("employee").as("one");
+		Table department = SQL.table("department");
+
+		Select innerSelectTwo = Select.builder().select(department.column("id"), department.column("name")).from(department)
+				.build();
+
+		InlineQuery two = InlineQuery.create(innerSelectTwo, "two");
+
+		Select select = Select.builder().select(employee.column("empId"), two.column("name")).from(employee) //
+				.joinLateral(two, Join.JoinType.JOIN) //
+				.on(two.column("department_id")).equals(employee.column("empId")) //
+				.build();
+
+		String sql = SqlRenderer.toString(select);
+		assertThat(sql).isEqualTo("SELECT one.empId, two.name FROM employee one " //
+				+ "JOIN LATERAL (SELECT department.id, department.name FROM department) two " //
+				+ "ON two.department_id = one.empId");
+	}
+
 	@Test // DATAJDBC-309
 	void shouldRenderOrderByName() {
 

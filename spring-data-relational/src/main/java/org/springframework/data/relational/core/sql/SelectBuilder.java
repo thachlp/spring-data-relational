@@ -496,6 +496,7 @@ public interface SelectBuilder {
 		 * @return {@code this} builder.
 		 */
 		SelectOn join(TableLike table, Join.JoinType joinType);
+		SelectOn joinLateral(InlineQuery table, Join.JoinType joinType);
 	}
 
 	/**

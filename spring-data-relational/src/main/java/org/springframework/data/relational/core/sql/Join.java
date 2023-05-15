@@ -32,14 +32,16 @@ public class Join extends AbstractSegment {
 	private final JoinType type;
 	private final TableLike joinTable;
 	private final Condition on;
+	private final boolean lateral;
 
-	Join(JoinType type, TableLike joinTable, Condition on) {
+	Join(JoinType type, TableLike joinTable, Condition on, boolean lateral) {
 
 		super(joinTable, on);
 
 		this.joinTable = joinTable;
 		this.type = type;
 		this.on = on;
+		this.lateral = lateral;
 	}
 
 	/**
@@ -61,6 +63,10 @@ public class Join extends AbstractSegment {
 	 */
 	public Condition getOn() {
 		return on;
+	}
+
+	public boolean isLateral() {
+		return lateral;
 	}
 
 	@Override

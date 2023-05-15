@@ -22,6 +22,10 @@ package org.springframework.data.relational.core.sql;
  */
 public class TestJoin extends Join {
 	public TestJoin(JoinType type, TableLike joinTable, Condition on) {
-		super(type, joinTable, on);
+		super(type, joinTable, on, false);
+	}
+
+	public TestJoin(JoinType type, InlineQuery joinTable, Comparison on, boolean lateral) {
+		super(type, joinTable, on, lateral);
 	}
 }

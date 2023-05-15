@@ -47,6 +47,9 @@ class JoinVisitor extends TypedSubtreeVisitor<Join> {
 	Delegation enterMatched(Join segment) {
 
 		joinClause.append(segment.getType().getSql()).append(' ');
+		if (segment.isLateral()) {
+			joinClause.append("LATERAL ");
+		}
 
 		return super.enterMatched(segment);
 	}

@@ -187,7 +187,7 @@ public class StructureToSelect {
 
 			Condition joinCondition = createJoinCondition(parentTable, childQuery, analyticJoin);
 			SelectBuilder.SelectFromAndJoinCondition joinThingy = selectAndParent
-					.join(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
+					.joinLateral(childQuery, Join.JoinType.FULL_OUTER_JOIN).on(joinCondition);
 
 			return joinThingy;
 		}

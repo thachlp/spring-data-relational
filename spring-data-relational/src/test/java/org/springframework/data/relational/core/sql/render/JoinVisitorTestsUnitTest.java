@@ -62,11 +62,16 @@ public class JoinVisitorTestsUnitTest {
 		InlineQuery inlineQuery = InlineQuery.create(select, "inline");
 
 		return Arrays.asList(
-				fixture("simple join", new TestJoin(Join.JoinType.JOIN, tabTwo, colOne.isEqualTo(colTwo)),
+				fixture("simple join",
+						new TestJoin(Join.JoinType.JOIN, tabTwo, colOne.isEqualTo(colTwo)),
 						"JOIN tabTwo ON tabOne.colOne = tabTwo.colTwo"),
 				fixture("inlineQuery",
 						new TestJoin(Join.JoinType.JOIN, inlineQuery, colTwo.isEqualTo(inlineQuery.column("renamed"))),
-						"JOIN (SELECT tabOne.colOne AS renamed FROM tabOne) inline ON tabTwo.colTwo = inline.renamed"));
+						"JOIN (SELECT tabOne.colOne AS renamed FROM tabOne) inline ON tabTwo.colTwo = inline.renamed"),
+				fixture("lateral join",
+						new TestJoin(Join.JoinType.JOIN, inlineQuery, colTwo.isEqualTo(inlineQuery.column("renamed")), true),
+						"JOIN LATERAL (SELECT tabOne.colOne AS renamed FROM tabOne) inline ON tabTwo.colTwo = inline.renamed")
+		);
 	}
 
 	private static Fixture fixture(String comment, Join join, String renderResult) {

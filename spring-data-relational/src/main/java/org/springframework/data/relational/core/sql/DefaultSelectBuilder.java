@@ -186,6 +186,11 @@ class DefaultSelectBuilder implements SelectBuilder, SelectAndFrom, SelectFromAn
 		return new JoinBuilder(table, this, joinType);
 	}
 
+	@Override
+	public SelectOn joinLateral(InlineQuery inlineQuery, JoinType joinType) {
+		return new JoinBuilder(inlineQuery, this, joinType, true);
+	}
+
 	public DefaultSelectBuilder join(Join join) {
 		this.joins.add(join);
 
@@ -216,15 +221,22 @@ class DefaultSelectBuilder implements SelectBuilder, SelectAndFrom, SelectFromAn
 		private final TableLike table;
 		private final DefaultSelectBuilder selectBuilder;
 		private final JoinType joinType;
+		private final boolean lateral;
 		private @Nullable Expression from;
 		private @Nullable Expression to;
 		private @Nullable Condition condition;
 
-		JoinBuilder(TableLike table, DefaultSelectBuilder selectBuilder, JoinType joinType) {
+		JoinBuilder(TableLike table, DefaultSelectBuilder selectBuilder, JoinType joinType, boolean lateral) {
 
 			this.table = table;
 			this.selectBuilder = selectBuilder;
 			this.joinType = joinType;
+			this.lateral = lateral;
+		}
+
+		JoinBuilder(TableLike table, DefaultSelectBuilder selectBuilder, JoinType joinType) {
+
+			this(table, selectBuilder, joinType, false);
 		}
 
 		JoinBuilder(TableLike table, DefaultSelectBuilder selectBuilder) {
@@ -283,7 +295,7 @@ class DefaultSelectBuilder implements SelectBuilder, SelectAndFrom, SelectFromAn
 
 		private Join finishJoin() {
 			finishCondition();
-			return new Join(joinType, table, condition);
+			return new Join(joinType, table, condition, lateral);
 		}
 
 		@Override
@@ -332,6 +344,12 @@ class DefaultSelectBuilder implements SelectBuilder, SelectAndFrom, SelectFromAn
 		public SelectOn join(TableLike table, JoinType joinType) {
 			selectBuilder.join(finishJoin());
 			return selectBuilder.join(table, joinType);
+		}
+
+		@Override
+		public SelectOn joinLateral(InlineQuery table, JoinType joinType) {
+			selectBuilder.join(finishJoin());
+			return selectBuilder.joinLateral(table, joinType);
 		}
 
 		@Override
