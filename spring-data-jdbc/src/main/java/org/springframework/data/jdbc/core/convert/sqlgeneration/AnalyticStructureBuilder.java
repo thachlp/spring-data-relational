@@ -250,10 +250,6 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			this(table, pathInformation, null, Collections.emptyList(), null, null);
 		}
 
-		TableDefinition(T table) {
-			this(table, null);
-		}
-
 		TableDefinition withId(C id) {
 
 			this.id = new BaseColumn(id);
@@ -299,6 +295,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		@Override
 		public List<AnalyticColumn> getId() {
+			
 			if (id == null) {
 				List<AnalyticColumn> derivedKeys = new ArrayList<>();
 				derivedKeys.addAll(foreignKey);
