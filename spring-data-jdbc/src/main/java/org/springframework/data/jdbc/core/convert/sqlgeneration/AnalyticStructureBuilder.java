@@ -75,7 +75,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		} else {
 			Select oldNode = nodeParentChain.get(0);
 			if (oldNode instanceof AnalyticJoin aj) {
-				aj.setChild(newNode); // TODO: <-- we need to recalculate all fks and stuff
+				aj.setChild(newNode);
 			}
 
 		}
@@ -118,10 +118,6 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			nodeParent = nodeParentLookUp.get(nodeParent);
 		}
 		return result;
-	}
-
-	List<AnalyticColumn> getId() {
-		return nodeRoot.getId();
 	}
 
 	/**
@@ -208,10 +204,6 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		protected AnalyticColumn getRowNumber() {
 			return new Literal(1);
-		}
-
-		protected void setRowNumber(AnalyticColumn rowNumber) {
-			throw new UnsupportedOperationException("Can't set a rownumber");
 		}
 
 		abstract void buildForeignKeys(TableDefinition parent, List<AnalyticColumn> keyColumns);
@@ -632,11 +624,6 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			}
 			rowNumber = new RowNumber(table.getForeignKey(), orderBy);
 
-		}
-
-		@Override
-		protected void setRowNumber(AnalyticColumn rowNumber) {
-			this.rowNumber = rowNumber;
 		}
 
 		@Override
