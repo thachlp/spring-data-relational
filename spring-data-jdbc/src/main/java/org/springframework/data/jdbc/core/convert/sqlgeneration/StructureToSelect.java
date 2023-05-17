@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -342,20 +343,64 @@ public class StructureToSelect {
 			SelectBuilder.SelectFromAndJoin from = StatementBuilder.select(selectExpressionList).from(table);
 
 			if (condition != null) {
-				AnalyticStructureBuilder.TableDefinition tableDefinition = null;
-				if (select instanceof AnalyticStructureBuilder.TableDefinition td) {
-					tableDefinition =td;
+				AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition tableDefinition = null;
+				if (select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition td) {
+					tableDefinition = td;
 				}
 				if (select instanceof AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticView av) {
-					tableDefinition = ((AnalyticStructureBuilder.TableDefinition) av.getParent());
+					tableDefinition = ((AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.TableDefinition) av
+							.getParent());
 				}
 
+				// apply the main condition to the aggregate root
+				if (tableDefinition != null) {
+					if (tableDefinition.getTable().equals(queryStructure.getRoot())) {
 
-				if (tableDefinition != null && tableDefinition.getTable().equals(queryStructure.getRoot())) {
+						System.out.println("apply join condition");
 
-					System.out.println("apply join condition");
+						return from.where(condition.apply(table));
+						// for all other table apply the lateral condition
+					} else {
 
-					return from.where(condition.apply(table));
+						List<Condition> conditions = new ArrayList<>();
+						List<AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn> lateralJoinColumns = tableDefinition
+								.getLateralJoinColumns();
+						Iterator<AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn> lateralJoinColumnIter = lateralJoinColumns
+								.iterator();
+						Iterator<AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn> fkColumnsIter = tableDefinition
+								.getForeignKey().iterator();
+
+						while (fkColumnsIter.hasNext()) {
+
+							Assert.state(lateralJoinColumnIter.hasNext(),
+									"The lists of foreign key columns and lateral join columns do not match");
+
+							AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn fkColumn = fkColumnsIter
+									.next();
+							AnalyticStructureBuilder<RelationalPersistentEntity, PersistentPropertyPathExtension>.AnalyticColumn lateralJoinColumn = lateralJoinColumnIter
+									.next();
+							Expression fkExpression = createColumn(table, fkColumn, NOOP_ID_REGISTRATION);
+							Expression lateralJoinColumnExpression = createAliasExpression(lateralJoinColumn);
+
+							conditions.add(Conditions.isEqual(fkExpression, lateralJoinColumnExpression));
+						}
+						Assert.state(!lateralJoinColumnIter.hasNext(),
+								"The lists of foreign key columns and lateral join columns do not match");
+
+						Condition combinedCondition = null;
+						for (Condition singleCondition : conditions) {
+
+							if (combinedCondition == null) {
+								combinedCondition = singleCondition;
+							} else {
+								combinedCondition.and(singleCondition);
+							}
+						}
+						if (combinedCondition != null) {
+
+							return from.where(combinedCondition);
+						}
+					}
 				}
 			}
 			return from;

@@ -18,9 +18,9 @@ package org.springframework.data.jdbc.core.convert.sqlgeneration;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticAssertions.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticJoinPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.AnalyticViewPattern.*;
+import static org.springframework.data.jdbc.core.convert.sqlgeneration.CoalescePattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.ConditionPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.ForeignKeyPattern.*;
-import static org.springframework.data.jdbc.core.convert.sqlgeneration.CoalescePattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.KeyPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.LiteralPattern.*;
 import static org.springframework.data.jdbc.core.convert.sqlgeneration.MaxOverPattern.*;
@@ -71,18 +71,29 @@ public class AnalyticStructureBuilderTests {
 				.addChildTo("parent", "parent-child", "child", td -> td.withColumns("child-value", "child-lastname")) //
 				.build();
 
-		assertThat(structure).hasExactColumns( //
-				"parent-value", "parent-lastname", //
-				"child-value", "child-lastname", //
-				fk("child", "parentId"), //
-				coalesce("parentId", fk("child", "parentId")), //
-				rn(fk("child", "parentId")), //
-				coalesce(lit(1), rn(fk("child", "parentId"))) //
-		).hasId("parentId") //
+		assertThat(structure).hasId("parentId") //
 				.hasStructure(aj(av(td("parent")), av(td("child")), //
 						eq("parentId", fk("child", "parentId")), // <-- should fail due to wrong column value
-						eq(lit(1), rn(fk("child", "parentId"))) //
-				));
+						eq(lit(1), rn(fk("child", "parentId")))) //
+				);
+		AnalyticStructureBuilder<String, String>.AnalyticJoin join = (AnalyticStructureBuilder.AnalyticJoin) structure.getSelect();
+
+		// assert that the ids do not contain the rowNumber
+		assertThat(join.getParent().getId()) //
+				.hasSize(1) //
+				.allMatch(id -> id instanceof AnalyticStructureBuilder.BaseColumn);
+		assertThat(join.getId()) //
+				.hasSize(1) //
+				.allMatch(id -> id instanceof AnalyticStructureBuilder.DerivedColumn);
+
+		assertThat(structure).hasExactColumns( //
+						"parent-value", "parent-lastname", //
+						"child-value", "child-lastname", //
+						fk("child", "parentId"), //
+						coalesce("parentId", fk("child", "parentId")), //
+						rn(fk("child", "parentId")), //
+						coalesce(lit(1), rn(fk("child", "parentId"))) //
+				);
 	}
 
 	@Test
@@ -90,15 +101,14 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 				.addTable("parent", td -> td.withId("parentId").withColumns("parent-value", "parent-lastname"))
-				.addChildTo("parent","parent-child", "child", td -> td.withColumns("child-value", "child-lastname")) //
+				.addChildTo("parent", "parent-child", "child", td -> td.withColumns("child-value", "child-lastname")) //
 				.build();
 
 		assertThat(structure.getSelect().getColumns()) //
 				.allMatch(c -> //
 				c instanceof AnalyticStructureBuilder.DerivedColumn //
 						|| c instanceof AnalyticStructureBuilder.Coalesce //
-						|| (c instanceof AnalyticStructureBuilder.BaseColumn bc && bc.column.toString().startsWith("parent"))
-				);
+						|| (c instanceof AnalyticStructureBuilder.BaseColumn bc && bc.column.toString().startsWith("parent")));
 
 	}
 
@@ -107,7 +117,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 				.addTable("parent", td -> td.withId("parentId").withColumns("parentName", "parentLastname"))
-				.addChildTo("parent", "parent-child","child", td -> td.withColumns("childName", "childLastname").withKeyColumn("childKey")) //
+				.addChildTo("parent", "parent-child", "child",
+						td -> td.withColumns("childName", "childLastname").withKeyColumn("childKey")) //
 				.build();
 
 		assertThat(structure) //
@@ -133,8 +144,8 @@ public class AnalyticStructureBuilderTests {
 
 		AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 				.addTable("parent", td -> td.withId("parentId").withColumns("parentName", "parentLastname"))
-				.addChildTo("parent", "parent-child1","child1", td -> td.withColumns("childName", "childLastname"))
-				.addChildTo("parent", "parent-child2","child2", td -> td.withColumns("siblingName", "siblingLastName")) //
+				.addChildTo("parent", "parent-child1", "child1", td -> td.withColumns("childName", "childLastname"))
+				.addChildTo("parent", "parent-child2", "child2", td -> td.withColumns("siblingName", "siblingLastName")) //
 				.build();
 
 		CoalescePattern<LiteralPattern> rnChild1 = coalesce(lit(1), rn(fk("child1", "parentId")));
@@ -174,8 +185,8 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
-					.addChildTo("granny","granny-parent", "parent", td -> td.withId("parentId").withColumns("parentName"))
-					.addChildTo("parent", "parent-child","child", td -> td.withColumns("childName")) //
+					.addChildTo("granny", "granny-parent", "parent", td -> td.withId("parentId").withColumns("parentName"))
+					.addChildTo("parent", "parent-child", "child", td -> td.withColumns("childName")) //
 					.build();
 
 			assertThat(structure) //
@@ -192,7 +203,9 @@ public class AnalyticStructureBuilderTests {
 							// child + parent
 							coalesce("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
 																															// necessary for joining with further children?
-							rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed RN for joining with granny
+							rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed RN for
+																																																		// joining with
+																																																		// granny
 							maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))),
 
 							// granny table
@@ -200,7 +213,10 @@ public class AnalyticStructureBuilderTests {
 							// (parent + child) --> granny
 							coalesce("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed
 																																																											// grannyId
-							coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))))) // completed RN for granny.
+							coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))))) // completed
+																																																											// RN
+																																																											// for
+																																																											// granny.
 
 					) //
 					.hasId("grannyId") //
@@ -228,8 +244,8 @@ public class AnalyticStructureBuilderTests {
 			// assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() -> {
 			AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
-					.addChildTo("granny", "granny-parent","parent", td -> td.withColumns("parentName"))
-					.addChildTo("parent", "parent-child","child", td -> td.withColumns("childName")) //
+					.addChildTo("granny", "granny-parent", "parent", td -> td.withColumns("parentName"))
+					.addChildTo("parent", "parent-child", "child", td -> td.withColumns("childName")) //
 					.build();
 
 			structure.getSelect();
@@ -240,9 +256,9 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
-					.addChildTo("granny", "granny-parent","parent",
+					.addChildTo("granny", "granny-parent", "parent",
 							td -> td.withId("parentId").withKeyColumn("parentKey").withColumns("parentName"))
-					.addChildTo("parent", "parent-child","child", td -> td.withColumns("childName")) //
+					.addChildTo("parent", "parent-child", "child", td -> td.withColumns("childName")) //
 					.build();
 
 			ForeignKeyPattern<String, String> fkChildToParent = fk("child", "parentId");
@@ -250,33 +266,40 @@ public class AnalyticStructureBuilderTests {
 			ForeignKeyPattern<String, String> fkParentToGranny = fk("parent", "grannyId");
 			MaxOverPattern<ForeignKeyPattern<String, String>> fkJoinParentWithChildToGranny = maxOver(fkParentToGranny,
 					idOfJoinParentWithChild);
-			CoalescePattern<LiteralPattern> rnJoinParentWithChild = coalesce(lit(1), rn(fkJoinParentWithChildToGranny)); // todo: should be ordered by key and rownumber
+			CoalescePattern<LiteralPattern> rnJoinParentWithChild = coalesce(lit(1), rn(fkJoinParentWithChildToGranny)); // todo:
+																																																										// should
+																																																										// be
+																																																										// ordered
+																																																										// by
+																																																										// key
+																																																										// and
+																																																										// rownumber
 
 			assertThat(structure).hasExactColumns( //
 
-							// child columns
-							"childName", //
-							fkChildToParent, //
+					// child columns
+					"childName", //
+					fkChildToParent, //
 
-							// parent
-							key("parentKey"), "parentName", //
-							fkParentToGranny, //
+					// parent
+					key("parentKey"), "parentName", //
+					fkParentToGranny, //
 
-							// join of parent + child
-							rn(fkChildToParent), // rownumber for the join itself. should be in the result because it is a single
-							// valued indicator if a child is present in this row. Relevant when there are
-							// siblings
-							idOfJoinParentWithChild, // guarantees a parent id in all rows and may serve as a join
-							// column for siblings of child.
-							fkJoinParentWithChildToGranny, //
+					// join of parent + child
+					rn(fkChildToParent), // rownumber for the join itself. should be in the result because it is a single
+					// valued indicator if a child is present in this row. Relevant when there are
+					// siblings
+					idOfJoinParentWithChild, // guarantees a parent id in all rows and may serve as a join
+					// column for siblings of child.
+					fkJoinParentWithChildToGranny, //
 
-							// granny
-							"grannyName", //
-							// join of granny + (parent + child)
-							coalesce("grannyId", fkJoinParentWithChildToGranny), // grannyId
-							rnJoinParentWithChild, //
-							rn(fkJoinParentWithChildToGranny)// TODO: order by does not get tested
-					) //
+					// granny
+					"grannyName", //
+					// join of granny + (parent + child)
+					coalesce("grannyId", fkJoinParentWithChildToGranny), // grannyId
+					rnJoinParentWithChild, //
+					rn(fkJoinParentWithChildToGranny)// TODO: order by does not get tested
+			) //
 					.hasId("grannyId") //
 					.hasStructure( //
 							aj( //
@@ -298,14 +321,17 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
-					.addChildTo("granny", "granny-parent","parent", td -> td.withColumns("parentName").withKeyColumn("parentKey"))
-					.addChildTo("parent", "parent-child","child", td -> td.withColumns("childName")) //
+					.addChildTo("granny", "granny-parent", "parent",
+							td -> td.withColumns("parentName").withKeyColumn("parentKey"))
+					.addChildTo("parent", "parent-child", "child", td -> td.withColumns("childName")) //
 					.build();
 
 			assertThat(structure).hasExactColumns( //
 					"grannyName", //
-					coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
-							coalesce(key("parentKey"), fk("child", key("parentKey")))))),
+					coalesce(lit(1),
+							rn(maxOver(fk("parent", "grannyId"),
+									coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+									coalesce(key("parentKey"), fk("child", key("parentKey")))))),
 					coalesce("grannyId",
 							maxOver(fk("parent", "grannyId"),
 									coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
@@ -319,7 +345,8 @@ public class AnalyticStructureBuilderTests {
 					fk("child", key("parentKey")), //
 					coalesce(key("parentKey"), fk("child", key("parentKey"))), //
 					rn(fk("child", fk("parent", "grannyId")), fk("child", key("parentKey"))), //
-					rn(maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+					rn(maxOver(fk("parent", "grannyId"),
+							coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
 							coalesce(key("parentKey"), fk("child", key("parentKey"))))), //
 					"childName" //
 			) //
@@ -338,8 +365,10 @@ public class AnalyticStructureBuilderTests {
 											maxOver(fk("parent", "grannyId"),
 													coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
 													coalesce(key("parentKey"), fk("child", key("parentKey"))))), //
-									eq(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
-											coalesce(key("parentKey"), fk("child", key("parentKey")))))) //
+									eq(lit(1),
+											rn(maxOver(fk("parent", "grannyId"),
+													coalesce(fk("parent", "grannyId"), fk("child", fk("parent", "grannyId"))),
+													coalesce(key("parentKey"), fk("child", key("parentKey")))))) //
 							) //
 					);
 		}
@@ -349,8 +378,8 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
-					.addSingleChildTo("granny", "granny-parent","parent", td -> td.withId("parentId").withColumns("parentName"))
-					.addChildTo("parent", "parent-child","child", td -> td.withColumns("childName")) //
+					.addSingleChildTo("granny", "granny-parent", "parent", td -> td.withId("parentId").withColumns("parentName"))
+					.addChildTo("parent", "parent-child", "child", td -> td.withColumns("childName")) //
 					.build();
 
 			assertThat(structure) //
@@ -367,7 +396,9 @@ public class AnalyticStructureBuilderTests {
 							// child + parent
 							coalesce("parentId", fk("child", "parentId")), // completed parentId for joining with granny, only
 							// necessary for joining with further children?
-							rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed RN for joining with granny
+							rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed RN for
+																																																		// joining with
+																																																		// granny
 							maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))),
 
 							// granny table
@@ -375,7 +406,10 @@ public class AnalyticStructureBuilderTests {
 							// (parent + child) --> granny
 							coalesce("grannyId", maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId")))), // completed
 							// grannyId
-							coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))))) // completed RN for granny.
+							coalesce(lit(1), rn(maxOver(fk("parent", "grannyId"), coalesce("parentId", fk("child", "parentId"))))) // completed
+																																																											// RN
+																																																											// for
+																																																											// granny.
 
 					) //
 					.hasId("grannyId") //
@@ -399,8 +433,8 @@ public class AnalyticStructureBuilderTests {
 
 			AnalyticStructure<String, String> structure = new AnalyticStructureBuilder<String, String>()
 					.addTable("granny", td -> td.withId("grannyId").withColumns("grannyName"))
-					.addSingleChildTo("granny", "granny-parent","parent", td -> td.withColumns("parentName"))
-					.addChildTo("parent","parent-child", "child", td -> td.withColumns("childName")) //
+					.addSingleChildTo("granny", "granny-parent", "parent", td -> td.withColumns("parentName"))
+					.addChildTo("parent", "parent-child", "child", td -> td.withColumns("childName")) //
 					.build();
 
 			ForeignKeyPattern<String, String> fkParentToGranny = fk("parent", "grannyId");
@@ -433,10 +467,5 @@ public class AnalyticStructureBuilderTests {
 		}
 
 	}
-
-
-
-
-
 
 }

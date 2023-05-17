@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.relational.core.mapping.PersistentPropertyPathExtension;
+import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -44,6 +46,12 @@ import org.springframework.util.Assert;
  * </ol>
  */
 class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
+
+	// TODO: add lateral condition
+	// on aggregate root table identify columns part of the key
+	// on joins add lateral condition
+	// when entities have there own id these replace the key columns of the aggregate root -> joins have there own lateral key condition
+
 
 	/** The select that is getting build */
 	private Select nodeRoot;
@@ -215,6 +223,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		public T getRoot() {
 			return AnalyticStructureBuilder.this.getRoot();
 		}
+
+		abstract protected void setLateralJoinColumns(List<AnalyticColumn> lateralJoinColumns);
 	}
 
 	abstract class SingleTableSelect extends Select {
@@ -230,6 +240,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		private KeyColumn keyColumn;
 
 		private final C pathInformation;
+		private List<AnalyticColumn> lateralJoinColumns;
 
 		TableDefinition(T table, @Nullable C pathInformation, @Nullable AnalyticColumn id,
 				List<? extends AnalyticColumn> columns, ForeignKey foreignKey, KeyColumn keyColumn) {
@@ -279,6 +290,11 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 		}
 
 		@Override
+		protected void setLateralJoinColumns(List<AnalyticColumn> lateralJoinColumns) {
+			this.lateralJoinColumns = lateralJoinColumns;
+		}
+
+		@Override
 		public List<? extends AnalyticColumn> getColumns() {
 
 			List<AnalyticColumn> allColumns = new ArrayList<>(columns);
@@ -295,7 +311,7 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		@Override
 		public List<AnalyticColumn> getId() {
-			
+
 			if (id == null) {
 				List<AnalyticColumn> derivedKeys = new ArrayList<>();
 				derivedKeys.addAll(foreignKey);
@@ -339,6 +355,10 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 		public C getPathInformation() {
 			return pathInformation;
+		}
+
+		public List<AnalyticColumn> getLateralJoinColumns() {
+			return lateralJoinColumns;
 		}
 	}
 
@@ -473,6 +493,8 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 				conditions.add(new JoinCondition(derived(parentId), fk));
 			});
 
+			child.setLateralJoinColumns(parentIds);
+
 			// create max expressions, so all rows relating to this.parent have populated fk columns
 			this.parent.getForeignKey().forEach(fk -> {
 				MaxOver maxOver = new MaxOver(fk, columnsFromJoin);
@@ -499,6 +521,11 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 
 			conditions.add(new JoinCondition(derived(parent.getRowNumber()), derived(child.getRowNumber())));
 
+		}
+
+		@Override
+		protected void setLateralJoinColumns(List<AnalyticColumn> lateralJoinColumns) {
+			// do nothing. joins are defining the lateral join columns when constructing the foreign key
 		}
 
 		@Override
@@ -621,6 +648,11 @@ class AnalyticStructureBuilder<T, C> implements AnalyticStructure<T, C> {
 			}
 			rowNumber = new RowNumber(table.getForeignKey(), orderBy);
 
+		}
+
+		@Override
+		protected void setLateralJoinColumns(List<AnalyticColumn> lateralJoinColumns) {
+			table.setLateralJoinColumns(lateralJoinColumns);
 		}
 
 		@Override
