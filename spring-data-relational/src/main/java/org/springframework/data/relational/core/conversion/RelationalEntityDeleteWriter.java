@@ -127,7 +127,7 @@ public class RelationalEntityDeleteWriter implements EntityWriter<Object, Mutabl
 			Consumer<PersistentPropertyPath<RelationalPersistentProperty>> pathConsumer) {
 
 		context.findPersistentPropertyPaths(entityType, property -> property.isEntity() && !property.isEmbedded()) //
-				.filter(AggregatePath::isWritable) //
+				.filter(path -> context.getAggregatePath(path).isWritable()) //
 				.forEach(pathConsumer);
 	}
 }

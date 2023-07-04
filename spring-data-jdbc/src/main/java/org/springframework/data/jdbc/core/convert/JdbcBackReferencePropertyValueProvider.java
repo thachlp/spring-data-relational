@@ -45,7 +45,7 @@ class JdbcBackReferencePropertyValueProvider implements PropertyValueProvider<Re
 
 	@Override
 	public <T> T getPropertyValue(RelationalPersistentProperty property) {
-		return (T) resultSet.getObject(basePath.append(property).getReverseColumnNameAlias().getReference());
+		return (T) resultSet.getObject(basePath.append(property).getTableInfo().reverseColumnInfo().alias().getReference());
 	}
 
 	public JdbcBackReferencePropertyValueProvider extendBy(RelationalPersistentProperty property) {

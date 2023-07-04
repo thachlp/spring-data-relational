@@ -64,7 +64,7 @@ class WritingContext<T> {
 		this.rootIdValueSource = IdValueSource.forInstance(root,
 				context.getRequiredPersistentEntity(aggregateChange.getEntityType()));
 		this.paths = context.findPersistentPropertyPaths(entityType, (p) -> p.isEntity() && !p.isEmbedded()) //
-				.filter(AggregatePath::isWritable).toList();
+				.filter(ppp -> context.getAggregatePath(ppp).isWritable()).toList();
 	}
 
 	/**

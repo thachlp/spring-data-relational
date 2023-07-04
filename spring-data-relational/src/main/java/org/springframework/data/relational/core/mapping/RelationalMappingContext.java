@@ -131,6 +131,7 @@ public class RelationalMappingContext
 	}
 
 	protected void applyDefaults(BasicRelationalPersistentProperty persistentProperty) {
+
 		persistentProperty.setForceQuote(isForceQuote());
 		persistentProperty.setExpressionEvaluator(this.expressionEvaluator);
 	}
@@ -143,10 +144,26 @@ public class RelationalMappingContext
 	 * @since 3.2
 	 */
 	public AggregatePath getAggregatePath(PersistentPropertyPath<? extends RelationalPersistentProperty> path) {
-		return aggregatePathCache.computeIfAbsent(path, key -> new DefaultAggregatePath(this, path));
+
+		AggregatePath aggregatePath = aggregatePathCache.get(path);
+		if (aggregatePath == null) {
+
+			aggregatePath = new DefaultAggregatePath(this, path);
+			aggregatePathCache.put(path, aggregatePath);
+		}
+
+		return aggregatePath;
 	}
 
 	public AggregatePath getAggregatePath(RelationalPersistentEntity<?> type) {
-		return aggregatePathCache.computeIfAbsent(type, key -> new DefaultAggregatePath(this, type));
+
+		AggregatePath aggregatePath = aggregatePathCache.get(type);
+		if (aggregatePath == null) {
+
+			aggregatePath = new DefaultAggregatePath(this, type);
+			aggregatePathCache.put(type, aggregatePath);
+		}
+
+		return aggregatePath;
 	}
 }

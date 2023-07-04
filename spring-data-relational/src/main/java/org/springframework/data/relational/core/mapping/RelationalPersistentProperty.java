@@ -45,7 +45,7 @@ public interface RelationalPersistentProperty extends PersistentProperty<Relatio
 	SqlIdentifier getReverseColumnName(PersistentPropertyPathExtension path);
 
 	default SqlIdentifier getReverseColumnName(AggregatePath path) {
-		return getReverseColumnName(path.getPathExtension());
+		return getReverseColumnName(PersistentPropertyPathExtension.from(path));
 	}
 
 	@Nullable

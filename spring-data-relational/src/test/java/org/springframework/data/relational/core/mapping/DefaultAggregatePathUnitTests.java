@@ -34,7 +34,7 @@ import org.springframework.data.relational.core.sql.SqlIdentifier;
  *
  * @author Jens Schauder
  */
-class AggregatePathUnitTests {
+class DefaultAggregatePathUnitTests {
 	RelationalMappingContext context = new RelationalMappingContext();
 
 	private RelationalPersistentEntity<?> entity = context.getRequiredPersistentEntity(DummyEntity.class);
@@ -119,15 +119,14 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path("second.third2").getReverseColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("second.third").getReverseColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("secondList.third2").getReverseColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("secondList.third").getReverseColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("second2.third2").getReverseColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("second2.third").getReverseColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("withId.second.third2.value").getReverseColumnName()).isEqualTo(quoted("WITH_ID"));
-			softly.assertThat(path("withId.second.third").getReverseColumnName()).isEqualTo(quoted("WITH_ID"));
-			softly.assertThat(path("withId.second2.third").getReverseColumnName()).isEqualTo(quoted("WITH_ID"));
+			softly.assertThat(path("second.third2").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("second.third").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("secondList.third2").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("secondList.third").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("second2.third").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("withId.second.third2.value").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("WITH_ID"));
+			softly.assertThat(path("withId.second.third").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("WITH_ID"));
+			softly.assertThat(path("withId.second2.third").getTableInfo().reverseColumnInfo().name()).isEqualTo(quoted("WITH_ID"));
 		});
 	}
 
@@ -136,10 +135,10 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path().getQualifierColumn()).isEqualTo(null);
-			softly.assertThat(path("second.third").getQualifierColumn()).isEqualTo(null);
-			softly.assertThat(path("secondList.third2").getQualifierColumn()).isEqualTo(null);
-			softly.assertThat(path("secondList").getQualifierColumn()).isEqualTo(SqlIdentifier.quoted("DUMMY_ENTITY_KEY"));
+			softly.assertThat(path().getTableInfo().qualifierColumnInfo()).isEqualTo(null);
+			softly.assertThat(path("second.third").getTableInfo().qualifierColumnInfo()).isEqualTo(null);
+			softly.assertThat(path("secondList.third2").getTableInfo().qualifierColumnInfo()).isEqualTo(null);
+			softly.assertThat(path("secondList").getTableInfo().qualifierColumnInfo().name()).isEqualTo(SqlIdentifier.quoted("DUMMY_ENTITY_KEY"));
 
 		});
 	}
@@ -149,10 +148,10 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path().getQualifierColumnType()).isEqualTo(null);
-			softly.assertThat(path("second.third").getQualifierColumnType()).isEqualTo(null);
-			softly.assertThat(path("secondList.third2").getQualifierColumnType()).isEqualTo(null);
-			softly.assertThat(path("secondList").getQualifierColumnType()).isEqualTo(Integer.class);
+			softly.assertThat(path().getTableInfo().qualifierColumnType()).isEqualTo(null);
+			softly.assertThat(path("second.third").getTableInfo().qualifierColumnType()).isEqualTo(null);
+			softly.assertThat(path("secondList.third2").getTableInfo().qualifierColumnType()).isEqualTo(null);
+			softly.assertThat(path("secondList").getTableInfo().qualifierColumnType()).isEqualTo(Integer.class);
 
 		});
 	}
@@ -172,13 +171,13 @@ class AggregatePathUnitTests {
 	void isWritable() {
 
 		assertSoftly(softly -> {
-			softly.assertThat(AggregatePath.isWritable(createSimplePath("withId"))).describedAs("simple path is writable")
+			softly.assertThat(context.getAggregatePath(createSimplePath("withId")).isWritable()).describedAs("simple path is writable")
 					.isTrue();
-			softly.assertThat(AggregatePath.isWritable(createSimplePath("secondList.third2")))
+			softly.assertThat(context.getAggregatePath(createSimplePath("secondList.third2")).isWritable())
 					.describedAs("long path is writable").isTrue();
-			softly.assertThat(AggregatePath.isWritable(createSimplePath("second")))
+			softly.assertThat(context.getAggregatePath(createSimplePath("second")).isWritable())
 					.describedAs("simple read only path is not writable").isFalse();
-			softly.assertThat(AggregatePath.isWritable(createSimplePath("second.third")))
+			softly.assertThat(context.getAggregatePath(createSimplePath("second.third")).isWritable())
 					.describedAs("long path containing read only element is not writable").isFalse();
 		});
 	}
@@ -287,33 +286,34 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path().getTableAlias()).isEqualTo(null);
-			softly.assertThat(path("second").getTableAlias()).isEqualTo(quoted("second"));
-			softly.assertThat(path("second.third2").getTableAlias()).isEqualTo(quoted("second"));
-			softly.assertThat(path("second.third2.value").getTableAlias()).isEqualTo(quoted("second"));
-			softly.assertThat(path("second.third").getTableAlias()).isEqualTo(quoted("second_third"));
-			softly.assertThat(path("second.third.value").getTableAlias()).isEqualTo(quoted("second_third"));
-			softly.assertThat(path("secondList.third2").getTableAlias()).isEqualTo(quoted("secondList"));
-			softly.assertThat(path("secondList.third2.value").getTableAlias()).isEqualTo(quoted("secondList"));
-			softly.assertThat(path("secondList.third").getTableAlias()).isEqualTo(quoted("secondList_third"));
-			softly.assertThat(path("secondList.third.value").getTableAlias()).isEqualTo(quoted("secondList_third"));
-			softly.assertThat(path("secondList").getTableAlias()).isEqualTo(quoted("secondList"));
-			softly.assertThat(path("second2.third").getTableAlias()).isEqualTo(quoted("secthird"));
-			softly.assertThat(path("second3.third").getTableAlias()).isEqualTo(quoted("third"));
-		});
+			softly.assertThat(path().getTableInfo().tableAlias()).isEqualTo(null);
+			softly.assertThat(path("second").getTableInfo().tableAlias()).isEqualTo(quoted("second"));
+			softly.assertThat(path("second.third2").getTableInfo().tableAlias()).isEqualTo(quoted("second"));
+			softly.assertThat(path("second.third2.value").getTableInfo().tableAlias()).isEqualTo(quoted("second"));
+			softly.assertThat(path("second.third").getTableInfo().tableAlias()).isEqualTo(quoted("second_third")); // missing _
+			softly.assertThat(path("second.third.value").getTableInfo().tableAlias()).isEqualTo(quoted("second_third")); // missing _
+			softly.assertThat(path("secondList.third2").getTableInfo().tableAlias()).isEqualTo(quoted("secondList"));
+			softly.assertThat(path("secondList.third2.value").getTableInfo().tableAlias()).isEqualTo(quoted("secondList"));
+			softly.assertThat(path("secondList.third").getTableInfo().tableAlias()).isEqualTo(quoted("secondList_third")); // missing _
+			softly.assertThat(path("secondList.third.value").getTableInfo().tableAlias()).isEqualTo(quoted("secondList_third")); // missing _
+			softly.assertThat(path("secondList").getTableInfo().tableAlias()).isEqualTo(quoted("secondList"));
+			softly.assertThat(path("second2.third").getTableInfo().tableAlias()).isEqualTo(quoted("secthird"));
+			softly.assertThat(path("second3.third").getTableInfo().tableAlias()).isEqualTo(quoted("third"));
+		});                                                                 
 	}
+
 	@Test // GH-1525
 	void getTableName() {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path().getQualifiedTableName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("second").getQualifiedTableName()).isEqualTo(quoted("SECOND"));
-			softly.assertThat(path("second.third2").getQualifiedTableName()).isEqualTo(quoted("SECOND"));
-			softly.assertThat(path("second.third2.value").getQualifiedTableName()).isEqualTo(quoted("SECOND"));
-			softly.assertThat(path("secondList.third2").getQualifiedTableName()).isEqualTo(quoted("SECOND"));
-			softly.assertThat(path("secondList.third2.value").getQualifiedTableName()).isEqualTo(quoted("SECOND"));
-			softly.assertThat(path("secondList").getQualifiedTableName()).isEqualTo(quoted("SECOND"));
+			softly.assertThat(path().getTableInfo().qualifiedTableName()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("second").getTableInfo().qualifiedTableName()).isEqualTo(quoted("SECOND"));
+			softly.assertThat(path("second.third2").getTableInfo().qualifiedTableName()).isEqualTo(quoted("SECOND"));
+			softly.assertThat(path("second.third2.value").getTableInfo().qualifiedTableName()).isEqualTo(quoted("SECOND"));
+			softly.assertThat(path("secondList.third2").getTableInfo().qualifiedTableName()).isEqualTo(quoted("SECOND"));
+			softly.assertThat(path("secondList.third2.value").getTableInfo().qualifiedTableName()).isEqualTo(quoted("SECOND"));
+			softly.assertThat(path("secondList").getTableInfo().qualifiedTableName()).isEqualTo(quoted("SECOND"));
 		});
 	}
 	@Test // GH-1525
@@ -321,12 +321,12 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path("second.third2.value").getColumnName()).isEqualTo(quoted("THRDVALUE"));
-			softly.assertThat(path("second.third.value").getColumnName()).isEqualTo(quoted("VALUE"));
-			softly.assertThat(path("secondList.third2.value").getColumnName()).isEqualTo(quoted("THRDVALUE"));
-			softly.assertThat(path("secondList.third.value").getColumnName()).isEqualTo(quoted("VALUE"));
-			softly.assertThat(path("second2.third2.value").getColumnName()).isEqualTo(quoted("SECTHRDVALUE"));
-			softly.assertThat(path("second2.third.value").getColumnName()).isEqualTo(quoted("VALUE"));
+			softly.assertThat(path("second.third2.value").getColumnInfo().name()).isEqualTo(quoted("THRDVALUE"));
+			softly.assertThat(path("second.third.value").getColumnInfo().name()).isEqualTo(quoted("VALUE"));
+			softly.assertThat(path("secondList.third2.value").getColumnInfo().name()).isEqualTo(quoted("THRDVALUE"));
+			softly.assertThat(path("secondList.third.value").getColumnInfo().name()).isEqualTo(quoted("VALUE"));
+			softly.assertThat(path("second2.third2.value").getColumnInfo().name()).isEqualTo(quoted("SECTHRDVALUE"));
+			softly.assertThat(path("second2.third.value").getColumnInfo().name()).isEqualTo(quoted("VALUE"));
 		});
 	}
 
@@ -335,12 +335,12 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path("second.third2.value").getColumnAlias()).isEqualTo(quoted("SECOND_THRDVALUE"));
-			softly.assertThat(path("second.third.value").getColumnAlias()).isEqualTo(quoted("SECOND_THIRD_VALUE"));
-			softly.assertThat(path("secondList.third2.value").getColumnAlias()).isEqualTo(quoted("SECONDLIST_THRDVALUE"));
-			softly.assertThat(path("secondList.third.value").getColumnAlias()).isEqualTo(quoted("SECONDLIST_THIRD_VALUE"));
-			softly.assertThat(path("second2.third2.value").getColumnAlias()).isEqualTo(quoted("SECTHRDVALUE"));
-			softly.assertThat(path("second2.third.value").getColumnAlias()).isEqualTo(quoted("SECTHIRD_VALUE"));
+			softly.assertThat(path("second.third2.value").getColumnInfo().alias()).isEqualTo(quoted("SECOND_THRDVALUE"));
+			softly.assertThat(path("second.third.value").getColumnInfo().alias()).isEqualTo(quoted("SECOND_THIRD_VALUE"));
+			softly.assertThat(path("secondList.third2.value").getColumnInfo().alias()).isEqualTo(quoted("SECONDLIST_THRDVALUE"));
+			softly.assertThat(path("secondList.third.value").getColumnInfo().alias()).isEqualTo(quoted("SECONDLIST_THIRD_VALUE"));
+			softly.assertThat(path("second2.third2.value").getColumnInfo().alias()).isEqualTo(quoted("SECTHRDVALUE"));
+			softly.assertThat(path("second2.third.value").getColumnInfo().alias()).isEqualTo(quoted("SECTHIRD_VALUE"));
 		});
 	}
 
@@ -349,12 +349,11 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path("second.third2.value").getReverseColumnNameAlias()).isEqualTo(quoted("SECOND_DUMMY_ENTITY"));
-			softly.assertThat(path("second.third.value").getReverseColumnNameAlias()).isEqualTo(quoted("SECOND_THIRD_DUMMY_ENTITY"));
-			softly.assertThat(path("secondList.third2.value").getReverseColumnNameAlias()).isEqualTo(quoted("SECONDLIST_DUMMY_ENTITY"));
-			softly.assertThat(path("secondList.third.value").getReverseColumnNameAlias()).isEqualTo(quoted("SECONDLIST_THIRD_DUMMY_ENTITY"));
-			softly.assertThat(path("second2.third2.value").getReverseColumnNameAlias()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("second2.third.value").getReverseColumnNameAlias()).isEqualTo(quoted("SECTHIRD_DUMMY_ENTITY"));
+			softly.assertThat(path("second.third2.value").getTableInfo().reverseColumnInfo().alias()).isEqualTo(quoted("SECOND_DUMMY_ENTITY"));
+			softly.assertThat(path("second.third.value").getTableInfo().reverseColumnInfo().alias()).isEqualTo(quoted("SECOND_THIRD_DUMMY_ENTITY"));
+			softly.assertThat(path("secondList.third2.value").getTableInfo().reverseColumnInfo().alias()).isEqualTo(quoted("SECONDLIST_DUMMY_ENTITY"));
+			softly.assertThat(path("secondList.third.value").getTableInfo().reverseColumnInfo().alias()).isEqualTo(quoted("SECONDLIST_THIRD_DUMMY_ENTITY"));
+			softly.assertThat(path("second2.third.value").getTableInfo().reverseColumnInfo().alias()).isEqualTo(quoted("SECTHIRD_DUMMY_ENTITY"));
 		});
 	}
 
@@ -388,12 +387,12 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path().getIdColumnName()).isEqualTo(quoted("ENTITY_ID"));
-			softly.assertThat(path("withId").getIdColumnName()).isEqualTo(quoted("WITH_ID_ID"));
+			softly.assertThat(path().getTableInfo().idColumnName()).isEqualTo(quoted("ENTITY_ID"));
+			softly.assertThat(path("withId").getTableInfo().idColumnName()).isEqualTo(quoted("WITH_ID_ID"));
 
-			softly.assertThatThrownBy(() -> path("second").getIdColumnName()).isInstanceOf(IllegalStateException.class);
-			softly.assertThatThrownBy(() ->path("second.third2").getIdColumnName()).isInstanceOf(IllegalStateException.class);
-			softly.assertThatThrownBy(() ->path("withId.second").getIdColumnName()).isInstanceOf(IllegalStateException.class);
+			softly.assertThat(path("second").getTableInfo().idColumnName()).isNull();
+			softly.assertThat(path("second.third2").getTableInfo().idColumnName()).isNull();
+			softly.assertThat(path("withId.second").getTableInfo().idColumnName()).isNull();
 		});
 	}
 
@@ -422,10 +421,10 @@ class AggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path().getEffectiveIdColumnName()).isEqualTo(quoted("ENTITY_ID"));
-			softly.assertThat(path("second.third2").getEffectiveIdColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
-			softly.assertThat(path("withId.second.third").getEffectiveIdColumnName()).isEqualTo(quoted("WITH_ID"));
-			softly.assertThat(path("withId.second.third2.value").getEffectiveIdColumnName()).isEqualTo(quoted("WITH_ID"));
+			softly.assertThat(path().getTableInfo().effectiveIdColumnName()).isEqualTo(quoted("ENTITY_ID"));
+			softly.assertThat(path("second.third2").getTableInfo().effectiveIdColumnName()).isEqualTo(quoted("DUMMY_ENTITY"));
+			softly.assertThat(path("withId.second.third").getTableInfo().effectiveIdColumnName()).isEqualTo(quoted("WITH_ID"));
+			softly.assertThat(path("withId.second.third2.value").getTableInfo().effectiveIdColumnName()).isEqualTo(quoted("WITH_ID"));
 		});
 	}
 

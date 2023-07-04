@@ -28,7 +28,7 @@ import org.springframework.data.relational.core.mapping.RelationalPersistentProp
  */
 public final class PersistentPropertyPathTestUtils {
 
-	private PropertyPathTestingUtils() {
+	private PersistentPropertyPathTestUtils() {
 		throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
 	}
 

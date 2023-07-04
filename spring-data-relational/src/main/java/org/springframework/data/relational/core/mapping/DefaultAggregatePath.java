@@ -16,14 +16,23 @@
 
 package org.springframework.data.relational.core.mapping;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 import org.springframework.data.mapping.PersistentPropertyPath;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
-import org.springframework.data.util.Lazy;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * Represents a path within an aggregate starting from the aggregate root.
@@ -31,25 +40,28 @@ import org.springframework.util.StringUtils;
  * @since 3.2
  * @author Jens Schauder
  */
-class DefaultAggregatePath  implements AggregatePath{
+class DefaultAggregatePath implements AggregatePath {
 
 	private final RelationalMappingContext context;
 
 	@Nullable private final RelationalPersistentEntity<?> rootType;
 
 	@Nullable private final PersistentPropertyPath<? extends RelationalPersistentProperty> path;
-	private final Lazy<SqlIdentifier> columnAlias = Lazy.of(() -> prefixWithTableAlias(getColumnName()));
+
+	private final List<AggregatePath> ancestorList;
 
 	DefaultAggregatePath(RelationalMappingContext context,
-								PersistentPropertyPath<? extends RelationalPersistentProperty> path) {
+			PersistentPropertyPath<? extends RelationalPersistentProperty> path) {
 
 		Assert.notNull(context, "context must not be null");
 		Assert.notNull(path, "path must not be null");
 
 		this.context = context;
 		this.path = path;
-
 		this.rootType = null;
+
+		ancestorList = new ArrayList<>(getLength());
+		collectAncestors(ancestorList, this);
 	}
 
 	DefaultAggregatePath(RelationalMappingContext context, RelationalPersistentEntity<?> rootType) {
@@ -59,28 +71,31 @@ class DefaultAggregatePath  implements AggregatePath{
 
 		this.context = context;
 		this.rootType = rootType;
-
 		this.path = null;
+
+		ancestorList = new ArrayList<>(getLength());
+		collectAncestors(ancestorList, this);
 	}
 
-	public static boolean isWritable(@Nullable PersistentPropertyPath<? extends RelationalPersistentProperty> path) {
-		return path == null || path.getLeafProperty().isWritable() && isWritable(path.getParentPath());
+	private static SqlIdentifier constructTableAlias(AggregatePath path) {
+
+		String alias = path.stream() //
+				.filter(p -> !p.isRoot()) //
+				.map(p -> p.isEmbedded() //
+						? p.getRequiredLeafProperty().getEmbeddedPrefix()//
+						: p.getRequiredLeafProperty().getName() + (p == path ? "" : "_") //
+				) //
+				.collect(new ReverseJoinCollector());
+		return SqlIdentifier.quoted(alias);
+	}
+
+	@Override
+	public boolean isWritable() {
+		return stream().allMatch(path -> path.isRoot() || path.getRequiredLeafProperty().isWritable());
 	}
 
 	public boolean isRoot() {
 		return path == null;
-	}
-
-	/**
-	 * The name of the column used to reference the id in the parent table.
-	 *
-	 * @throws IllegalStateException when called on an empty path.
-	 */
-	public SqlIdentifier getReverseColumnName() {
-
-		Assert.state(!isRoot(), "Empty paths don't have a reverse column name");
-
-		return path.getLeafProperty().getReverseColumnName(this);
 	}
 
 	/**
@@ -148,17 +163,9 @@ class DefaultAggregatePath  implements AggregatePath{
 	 */
 	public AggregatePath getIdDefiningParentPath() {
 
-		AggregatePath parent = getParentPath();
+		Predicate<AggregatePath> idDefiningPathFilter = ap -> !ap.equals(this) && (ap.isRoot() || ap.hasIdProperty());
+		return stream().filter(idDefiningPathFilter).findFirst().orElseThrow();
 
-		if (isRoot()) {
-			return parent;
-		}
-
-		if (!parent.hasIdProperty()) {
-			return parent.getIdDefiningParentPath();
-		}
-
-		return parent;
 	}
 
 	public RelationalPersistentProperty getRequiredIdProperty() {
@@ -170,31 +177,60 @@ class DefaultAggregatePath  implements AggregatePath{
 		return isRoot() ? 0 : path.getLength();
 	}
 
-	/**
-	 * The column name used for the list index or map key of the leaf property of this path.
-	 *
-	 * @return May be {@literal null}.
-	 */
-	@Nullable
-	public SqlIdentifier getQualifierColumn() {
-		return isRoot() ? null : path.getLeafProperty().getKeyColumn();
+	@Override
+	public TableInfo getTableInfo() {
+
+		AggregatePath tableOwner = getTableOwningAncestor();
+
+		RelationalPersistentEntity<?> leafEntity = tableOwner.getRequiredLeafEntity();
+		SqlIdentifier qualifiedTableName = leafEntity.getQualifiedTableName();
+
+		SqlIdentifier tableAlias = tableOwner.isRoot() ? null : constructTableAlias(tableOwner);
+
+		ColumnInfo reverseColumnInfo = tableOwner.isRoot() ? null
+				: new ColumnInfo(tableOwner.getRequiredLeafProperty().getReverseColumnName(tableOwner),
+						prefixWithTableAlias(tableOwner.getRequiredLeafProperty().getReverseColumnName(tableOwner)));
+
+		ColumnInfo qualifierColumnInfo = null;
+		if (!isRoot()) {
+			SqlIdentifier keyColumn = path.getLeafProperty().getKeyColumn();
+			if (keyColumn != null) {
+				qualifierColumnInfo = new ColumnInfo(keyColumn, keyColumn);
+			}
+		}
+
+		Class<?> qualifierColumnType = null;
+		if (!isRoot() && path.getLeafProperty().isQualified()) {
+			qualifierColumnType = path.getLeafProperty().getQualifierColumnType();
+		}
+
+		SqlIdentifier idColumnName = leafEntity.hasIdProperty() ? leafEntity.getIdColumn() : null;
+
+		SqlIdentifier effectiveIdColumnName = tableOwner.isRoot() ? idColumnName : reverseColumnInfo.name();
+
+		return new TableInfo(qualifiedTableName, tableAlias, reverseColumnInfo, qualifierColumnInfo, qualifierColumnType,
+				idColumnName, effectiveIdColumnName);
 	}
 
-	/**
-	 * The type of the qualifier column of the leaf property of this path or {@literal null} if this is not applicable.
-	 *
-	 * @return may be {@literal null}.
-	 */
-	@Nullable
-	public Class<?> getQualifierColumnType() {
+	@Override
+	public ColumnInfo getColumnInfo() {
 
-		if (isRoot()) {
-			return null;
-		}
-		if (!path.getLeafProperty().isQualified()) {
-			return null;
-		}
-		return path.getLeafProperty().getQualifierColumnType();
+		Assert.state(!isRoot(), "Path is null");
+
+		SqlIdentifier name = assembleColumnName(path.getLeafProperty().getColumnName());
+		return new ColumnInfo(name, prefixWithTableAlias(name));
+	}
+
+	private SqlIdentifier assembleColumnName(SqlIdentifier suffix) {
+		return suffix.transform(constructEmbeddedPrefix()::concat);
+	}
+
+	private String constructEmbeddedPrefix() {
+
+		return stream() //
+				.filter(p -> p != this) //
+				.takeWhile(p -> p.isEmbedded()).map(p -> p.getRequiredLeafProperty().getEmbeddedPrefix()) //
+				.collect(new ReverseJoinCollector());
 	}
 
 	/**
@@ -221,94 +257,8 @@ class DefaultAggregatePath  implements AggregatePath{
 	 */
 	public AggregatePath getTableOwningAncestor() {
 
-		return isEntity() && !isEmbedded() ? this : getParentPath().getTableOwningAncestor();
-	}
+		return stream().filter(ap -> ap.isEntity() && !ap.isEmbedded()).findFirst().orElseThrow();
 
-	@Nullable
-	public SqlIdentifier assembleTableAlias() {
-
-		Assert.state(!isRoot(), "Path is null");
-
-		RelationalPersistentProperty leafProperty = path.getLeafProperty();
-		String prefix;
-		if (isEmbedded()) {
-			prefix = leafProperty.getEmbeddedPrefix();
-
-		} else {
-			prefix = leafProperty.getName();
-		}
-
-		if (path.getLength() == 1) {
-			Assert.notNull(prefix, "Prefix mus not be null");
-			return StringUtils.hasText(prefix) ? SqlIdentifier.quoted(prefix) : null;
-		}
-
-		AggregatePath parentPath = getParentPath();
-		SqlIdentifier sqlIdentifier = parentPath.assembleTableAlias();
-
-		if (sqlIdentifier != null) {
-
-			return parentPath.isEmbedded() ? sqlIdentifier.transform(name -> name.concat(prefix))
-					: sqlIdentifier.transform(name -> name + "_" + prefix);
-		}
-		return SqlIdentifier.quoted(prefix);
-
-	}
-
-	/**
-	 * The alias used for the table on which this path is based.
-	 *
-	 * @return a table alias, {@literal null} if the table owning path is the empty path.
-	 */
-	@Nullable
-	public SqlIdentifier getTableAlias() {
-
-		AggregatePath tableOwner = getTableOwningAncestor();
-
-		return tableOwner.isRoot() ? null : tableOwner.assembleTableAlias();
-
-	}
-
-	/**
-	 * The fully qualified name of the table this path is tied to or of the longest ancestor path that is actually tied to
-	 * a table.
-	 *
-	 * @return the name of the table. Guaranteed to be not {@literal null}.
-	 * @since 3.0
-	 */
-	public SqlIdentifier getQualifiedTableName() {
-		return getTableOwningAncestor().getRequiredLeafEntity().getQualifiedTableName();
-	}
-
-	/**
-	 * The name of the column used to represent this property in the database.
-	 *
-	 * @throws IllegalStateException when called on an empty path.
-	 */
-	public SqlIdentifier getColumnName() {
-
-		Assert.state(!isRoot(), "Path is null");
-
-		return assembleColumnName(path.getLeafProperty().getColumnName());
-	}
-
-	/**
-	 * The alias for the column used to represent this property in the database.
-	 *
-	 * @throws IllegalStateException when called on an empty path.
-	 */
-	public SqlIdentifier getColumnAlias() {
-		return columnAlias.get();
-	}
-
-	/**
-	 * The alias used in select for the column used to reference the id in the parent table.
-	 *
-	 * @throws IllegalStateException when called on an empty path.
-	 */
-	public SqlIdentifier getReverseColumnNameAlias() {
-
-		return prefixWithTableAlias(getReverseColumnName());
 	}
 
 	@Override
@@ -318,29 +268,11 @@ class DefaultAggregatePath  implements AggregatePath{
 				+ ((isRoot()) ? "/" : path.toDotPath());
 	}
 
-	public SqlIdentifier assembleColumnName(SqlIdentifier suffix) {
-
-		Assert.state(!isRoot(), "Path is null");
-
-		if (path.getLength() <= 1) {
-			return suffix;
-		}
-
-		PersistentPropertyPath<? extends RelationalPersistentProperty> parentPath = path.getParentPath();
-		RelationalPersistentProperty parentLeaf = parentPath.getLeafProperty();
-
-		if (!parentLeaf.isEmbedded()) {
-			return suffix;
-		}
-
-		String embeddedPrefix = parentLeaf.getEmbeddedPrefix();
-
-		return getParentPath().assembleColumnName(suffix.transform(embeddedPrefix::concat));
-	}
-
 	private SqlIdentifier prefixWithTableAlias(SqlIdentifier columnName) {
 
-		SqlIdentifier tableAlias = getTableAlias();
+		AggregatePath tableOwner = getTableOwningAncestor();
+		SqlIdentifier tableAlias = tableOwner.isRoot() ? null : constructTableAlias(tableOwner);
+
 		return tableAlias == null ? columnName : columnName.transform(name -> tableAlias.getReference() + "_" + name);
 	}
 
@@ -395,13 +327,6 @@ class DefaultAggregatePath  implements AggregatePath{
 	}
 
 	/**
-	 * The column name of the id column of the ancestor path that represents an actual table.
-	 */
-	public SqlIdentifier getIdColumnName() {
-		return getTableOwningAncestor().getRequiredLeafEntity().getIdColumn();
-	}
-
-	/**
 	 * @return {@literal true} when this is references a {@link java.util.Collection} or an array.
 	 */
 	public boolean isCollectionLike() {
@@ -438,18 +363,7 @@ class DefaultAggregatePath  implements AggregatePath{
 		return path;
 	}
 
-	/**
-	 * If the table owning ancestor has an id the column name of that id property is returned. Otherwise the reverse
-	 * column is returned.
-	 */
-	public SqlIdentifier getEffectiveIdColumnName() {
-
-		AggregatePath owner = getTableOwningAncestor();
-		return owner.isRoot() ? owner.getRequiredLeafEntity().getIdColumn() : owner.getReverseColumnName();
-	}
-
-	@Nullable
-	public PersistentPropertyPathExtension getPathExtension() {
+	PersistentPropertyPathExtension getPathExtension() {
 
 		if (isRoot()) {
 			return new PersistentPropertyPathExtension(context, rootType);
@@ -460,15 +374,62 @@ class DefaultAggregatePath  implements AggregatePath{
 	@Override
 	public boolean equals(Object o) {
 
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		DefaultAggregatePath that = (DefaultAggregatePath) o;
-		return Objects.equals(context, that.context) && Objects.equals(rootType, that.rootType) && Objects.equals(path, that.path);
+		return Objects.equals(context, that.context) && Objects.equals(rootType, that.rootType)
+				&& Objects.equals(path, that.path);
 	}
 
 	@Override
 	public int hashCode() {
 
 		return Objects.hash(context, rootType, path);
+	}
+
+	/**
+	 * creates an {@link Iterator} that iterates over the current path and all ancestors. It will start with the current
+	 * path, followed by its parent and so one until ending with the root.
+	 */
+	@Override
+	public Iterator<AggregatePath> iterator() {
+		return ancestorList.iterator();
+	}
+
+	private static void collectAncestors(List<AggregatePath> ancestorList, AggregatePath current) {
+
+		ancestorList.add(current);
+		if (!current.isRoot()) {
+			collectAncestors(ancestorList, current.getParentPath());
+		}
+	}
+
+	private static class ReverseJoinCollector implements Collector<String, StringBuilder, String> {
+		@Override
+		public Supplier<StringBuilder> supplier() {
+			return () -> new StringBuilder();
+		}
+
+		@Override
+		public BiConsumer<StringBuilder, String> accumulator() {
+			return ((stringBuilder, s) -> stringBuilder.insert(0, s));
+		}
+
+		@Override
+		public BinaryOperator<StringBuilder> combiner() {
+			return (a, b) -> b.append(a);
+		}
+
+		@Override
+		public Function<StringBuilder, String> finisher() {
+			return StringBuilder::toString;
+		}
+
+		@Override
+		public Set<Characteristics> characteristics() {
+			return Collections.emptySet();
+		}
 	}
 }
