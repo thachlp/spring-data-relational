@@ -15,6 +15,11 @@
  */
 package org.springframework.data.jdbc.repository;
 
+import static java.util.Arrays.*;
+import static org.assertj.core.api.Assertions.*;
+
+import java.util.List;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,11 +43,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.jdbc.JdbcTestUtils;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-
-import static java.util.Arrays.*;
-import static org.assertj.core.api.Assertions.*;
 
 /**
  * Very simple use cases for creation and usage of JdbcRepositories with test {@link Embedded} annotation in Entities.
@@ -78,7 +78,9 @@ public class JdbcRepositoryEmbeddedIntegrationTests {
 		}
 
 		@Bean
-		WithDotColumnRepo withDotColumnRepo() { return factory.getRepository(WithDotColumnRepo.class);}
+		WithDotColumnRepo withDotColumnRepo() {
+			return factory.getRepository(WithDotColumnRepo.class);
+		}
 
 	}
 
@@ -243,11 +245,12 @@ public class JdbcRepositoryEmbeddedIntegrationTests {
 		Person second = new Person(null, "Alex", "LA", new PersonContacts("aaa@example.com", "+2 222 2222 22 22"));
 		Person third = new Person(null, "Sarah", "NY", new PersonContacts("ggg@example.com", "+3 333 3333 33 33"));
 
-		personRepository.saveAll(List.of(first, second, third));
+		List<Person> people = (List)personRepository.saveAll(List.of(first, second, third));
 
-		Iterable<Person> fetchedPersons = personRepository.findAll(Sort.by(new Sort.Order(Sort.Direction.ASC, "personContacts.email")));
+		Iterable<Person> fetchedPersons = personRepository
+				.findAll(Sort.by(new Sort.Order(Sort.Direction.ASC, "personContacts.email")));
 
-		Assertions.assertThat(fetchedPersons).containsExactly(second, first, third);
+		Assertions.assertThat(fetchedPersons).containsExactly(people.get(1), people.get(0), people.get(2));
 	}
 
 	@Test // GH-1286
@@ -257,11 +260,12 @@ public class JdbcRepositoryEmbeddedIntegrationTests {
 		WithDotColumn second = new WithDotColumn(null, "Istanbul");
 		WithDotColumn third = new WithDotColumn(null, "Tokyo");
 
-		withDotColumnRepo.saveAll(List.of(first, second, third));
+		List<WithDotColumn> saved = (List) withDotColumnRepo.saveAll(List.of(first, second, third));
 
-		Iterable<WithDotColumn> fetchedPersons = withDotColumnRepo.findAll(Sort.by(new Sort.Order(Sort.Direction.ASC, "address")));
+		Iterable<WithDotColumn> fetchedPersons = withDotColumnRepo
+				.findAll(Sort.by(new Sort.Order(Sort.Direction.ASC, "address")));
 
-		Assertions.assertThat(fetchedPersons).containsExactly(second, first, third);
+		Assertions.assertThat(fetchedPersons).containsExactly(saved.get(1), saved.get(0), saved.get(2));
 	}
 
 	private static DummyEntity createDummyEntity() {
@@ -292,132 +296,27 @@ public class JdbcRepositoryEmbeddedIntegrationTests {
 
 	interface PersonRepository extends PagingAndSortingRepository<Person, Long>, CrudRepository<Person, Long> {}
 
-	interface WithDotColumnRepo extends PagingAndSortingRepository<WithDotColumn, Integer>, CrudRepository<WithDotColumn, Integer> {}
+	interface WithDotColumnRepo
+			extends PagingAndSortingRepository<WithDotColumn, Integer>, CrudRepository<WithDotColumn, Integer> {}
 
-	static class WithDotColumn {
-
-		@Id
-		private Integer id;
-		@Column("address.city")
-		private String address;
-
-		public WithDotColumn(Integer id, String address) {
-			this.id = id;
-			this.address = address;
-		}
-
-		public WithDotColumn() {
-		}
-
-		public Integer getId() {
-			return this.id;
-		}
-
-		public String getAddress() {
-			return this.address;
-		}
-
-		public void setId(Integer id) {
-			this.id = id;
-		}
-
-		public void setAddress(String address) {
-			this.address = address;
-		}
+	record WithDotColumn(@Id Integer id, @Column("address.city") String address) {
 	}
 
 	@Table("SORT_EMBEDDED_ENTITY")
-	static class Person {
-		@Id
-		private Long id;
-		private String firstName;
-		private String address;
-
-		@Embedded.Nullable
-		private PersonContacts personContacts;
-
-		public Person(Long id, String firstName, String address, PersonContacts personContacts) {
-			this.id = id;
-			this.firstName = firstName;
-			this.address = address;
-			this.personContacts = personContacts;
-		}
-
-		public Person() {
-		}
-
-		public Long getId() {
-			return this.id;
-		}
-
-		public String getFirstName() {
-			return this.firstName;
-		}
-
-		public String getAddress() {
-			return this.address;
-		}
-
-		public PersonContacts getPersonContacts() {
-			return this.personContacts;
-		}
-
-		public void setId(Long id) {
-			this.id = id;
-		}
-
-		public void setFirstName(String firstName) {
-			this.firstName = firstName;
-		}
-
-		public void setAddress(String address) {
-			this.address = address;
-		}
-
-		public void setPersonContacts(PersonContacts personContacts) {
-			this.personContacts = personContacts;
-		}
+	record Person(@Id Long id, String firstName, String address, @Embedded.Nullable PersonContacts personContacts) {
 	}
 
-	static class PersonContacts {
-		private String email;
-		private String phoneNumber;
-
-		public PersonContacts(String email, String phoneNumber) {
-			this.email = email;
-			this.phoneNumber = phoneNumber;
+	record PersonContacts(String email, String phoneNumber) {
 		}
 
-		public PersonContacts() {
-		}
-
-		public String getEmail() {
-			return this.email;
-		}
-
-		public String getPhoneNumber() {
-			return this.phoneNumber;
-		}
-
-		public void setEmail(String email) {
-			this.email = email;
-		}
-
-		public void setPhoneNumber(String phoneNumber) {
-			this.phoneNumber = phoneNumber;
-		}
-	}
 
 	static class DummyEntity {
 
-		@Id
-		Long id;
+		@Id Long id;
 
-		@Embedded(onEmpty = OnEmpty.USE_NULL, prefix = "PREFIX_")
-		CascadedEmbeddable prefixedEmbeddable;
+		@Embedded(onEmpty = OnEmpty.USE_NULL, prefix = "PREFIX_") CascadedEmbeddable prefixedEmbeddable;
 
-		@Embedded(onEmpty = OnEmpty.USE_NULL)
-		CascadedEmbeddable embeddable;
+		@Embedded(onEmpty = OnEmpty.USE_NULL) CascadedEmbeddable embeddable;
 
 		public Long getId() {
 			return this.id;
@@ -447,8 +346,7 @@ public class JdbcRepositoryEmbeddedIntegrationTests {
 	static class CascadedEmbeddable {
 		String test;
 
-		@Embedded(onEmpty = OnEmpty.USE_NULL, prefix = "PREFIX2_")
-		Embeddable embeddable;
+		@Embedded(onEmpty = OnEmpty.USE_NULL, prefix = "PREFIX2_") Embeddable embeddable;
 
 		public String getTest() {
 			return this.test;
