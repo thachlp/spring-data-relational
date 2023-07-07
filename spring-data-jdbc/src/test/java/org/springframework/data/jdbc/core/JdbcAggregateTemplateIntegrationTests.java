@@ -24,6 +24,8 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.Value;
 import lombok.With;
 
@@ -279,16 +281,14 @@ class JdbcAggregateTemplateIntegrationTests {
 				.containsExactly("Frozen", "Star", null);
 	}
 
-
 	@Test //
 	@EnabledOnFeature({SUPPORTS_QUOTED_IDS})
 	void findByNonPropertySortFails() {
 
-		assertThatThrownBy(() -> template.findAll(LegoSet.class,
-				Sort.by("somethingNotExistant"))).isInstanceOf(InvalidPersistentPropertyPath.class);
+		assertThatThrownBy(() -> template.findAll(LegoSet.class, Sort.by("somethingNotExistant")))
+				.isInstanceOf(InvalidPersistentPropertyPath.class);
 
 	}
-
 
 	@Test // DATAJDBC-112
 	@EnabledOnFeature(SUPPORTS_QUOTED_IDS)
@@ -416,8 +416,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		AggregateWithImmutableVersion twiceSavedAggregate2 = template.save(savedAggregatesIterator.next());
 		AggregateWithImmutableVersion twiceSavedAggregate3 = template.save(savedAggregatesIterator.next());
 
-		savedAggregatesIterator = template.updateAll(
-				List.of(savedAggregate1, twiceSavedAggregate2, twiceSavedAggregate3)).iterator();
+		savedAggregatesIterator = template.updateAll(List.of(savedAggregate1, twiceSavedAggregate2, twiceSavedAggregate3))
+				.iterator();
 
 		assertThat(savedAggregatesIterator.next().version).isEqualTo(1);
 		assertThat(savedAggregatesIterator.next().version).isEqualTo(2);
@@ -963,13 +963,11 @@ class JdbcAggregateTemplateIntegrationTests {
 		// Should have an ID and a version of 1.
 		final Long id = aggregate.getId();
 
-		assertThatThrownBy(
-				() -> template.delete(new AggregateWithImmutableVersion(id, 0L)))
+		assertThatThrownBy(() -> template.delete(new AggregateWithImmutableVersion(id, 0L)))
 				.describedAs("deleting an aggregate with an outdated version should raise an exception")
 				.isInstanceOf(OptimisticLockingFailureException.class);
 
-		assertThatThrownBy(
-				() -> template.delete(new AggregateWithImmutableVersion(id, 2L)))
+		assertThatThrownBy(() -> template.delete(new AggregateWithImmutableVersion(id, 2L)))
 				.describedAs("deleting an aggregate with a future version should raise an exception")
 				.isInstanceOf(OptimisticLockingFailureException.class);
 
@@ -1220,7 +1218,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		List<Float> digits = new ArrayList<>();
 	}
 
-	@Data
+	@Getter
+	@Setter
 	static class LegoSet {
 
 		@Column("id1")
@@ -1234,7 +1233,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		private Manual alternativeInstructions;
 	}
 
-	@Data
+	@Getter
+	@Setter
 	static class Manual {
 
 		@Column("id2")
@@ -1445,7 +1445,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		String readOnly;
 	}
 
-	@Data
+	@Getter
+	@Setter
 	static abstract class VersionedAggregate {
 
 		@Id
@@ -1456,7 +1457,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		abstract void setVersion(Number newVersion);
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@Table("VERSIONED_AGGREGATE")
 	static class PersistableVersionedAggregate implements Persistable<Long> {
 
@@ -1504,7 +1506,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		Long version;
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@Table("VERSIONED_AGGREGATE")
 	static class AggregateWithLongVersion extends VersionedAggregate {
 
@@ -1534,7 +1537,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		}
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@Table("VERSIONED_AGGREGATE")
 	static class AggregateWithIntegerVersion extends VersionedAggregate {
 
@@ -1564,7 +1568,8 @@ class JdbcAggregateTemplateIntegrationTests {
 		}
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@Table("VERSIONED_AGGREGATE")
 	static class AggregateWithShortVersion extends VersionedAggregate {
 

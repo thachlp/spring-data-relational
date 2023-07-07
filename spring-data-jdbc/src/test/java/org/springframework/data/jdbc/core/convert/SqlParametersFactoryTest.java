@@ -22,8 +22,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.data.jdbc.core.convert.DefaultDataAccessStrategyUnitTests.*;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.Value;
 
 import java.util.ArrayList;
@@ -91,7 +92,8 @@ class SqlParametersFactoryTest {
 		assertThat(sqlParameterSource.getValue("DUMMYENTITYROOT")).isEqualTo(rawId);
 	}
 
-	@Test // DATAJDBC-146
+	@Test
+		// DATAJDBC-146
 	void identifiersGetAddedAsParameters() {
 
 		long id = 4711L;
@@ -105,7 +107,8 @@ class SqlParametersFactoryTest {
 		assertThat(sqlParameterSource.getValue("reference")).isEqualTo(reference);
 	}
 
-	@Test // DATAJDBC-146
+	@Test
+		// DATAJDBC-146
 	void additionalIdentifierForIdDoesNotLeadToDuplicateParameters() {
 
 		long id = 4711L;
@@ -117,7 +120,8 @@ class SqlParametersFactoryTest {
 		assertThat(sqlParameterSource.getValue("id")).isEqualTo(id);
 	}
 
-	@Test // DATAJDBC-235
+	@Test
+		// DATAJDBC-235
 	void considersConfiguredWriteConverter() {
 
 		SqlParametersFactory sqlParametersFactory = createSqlParametersFactoryWithConverters(
@@ -131,7 +135,8 @@ class SqlParametersFactoryTest {
 		assertThat(sqlParameterSource.getValue("flag")).isEqualTo("T");
 	}
 
-	@Test // DATAJDBC-412
+	@Test
+		// DATAJDBC-412
 	void considersConfiguredWriteConverterForIdValueObjects_onWrite() {
 
 		SqlParametersFactory sqlParametersFactory = createSqlParametersFactoryWithConverters(
@@ -148,7 +153,8 @@ class SqlParametersFactoryTest {
 		assertThat(sqlParameterSource.getValue("value")).isEqualTo(value);
 	}
 
-	@Test // GH-1405
+	@Test
+		// GH-1405
 	void parameterNamesGetSanitized() {
 
 		WithIllegalCharacters entity = new WithIllegalCharacters(23L, "aValue");
@@ -174,11 +180,17 @@ class SqlParametersFactoryTest {
 		}
 	}
 
-	@Data
+	@Getter
+	@Setter
 	private static class WithValueObjectId {
 
-		@Id private final IdValue id;
+		@Id
+		private final IdValue id;
 		String value;
+
+		private WithValueObjectId(IdValue id) {
+			this.id = id;
+		}
 	}
 
 	@Value
@@ -211,30 +223,35 @@ class SqlParametersFactoryTest {
 	@AllArgsConstructor
 	private static class EntityWithBoolean {
 
-		@Id Long id;
+		@Id
+		Long id;
 		boolean flag;
 	}
 
 	@RequiredArgsConstructor // DATAJDBC-349
 	private static class DummyEntityRoot {
 
-		@Id private final IdValue id;
+		@Id
+		private final IdValue id;
 		List<DummyEntity> dummyEntities = new ArrayList<>();
 	}
 
 	@RequiredArgsConstructor
 	private static class DummyEntity {
 
-		@Id private final Long id;
+		@Id
+		private final Long id;
 	}
 
 	@AllArgsConstructor
 	private static class WithIllegalCharacters {
 
 		@Column("i.d")
-		@Id Long id;
+		@Id
+		Long id;
 
-		@Column("val&ue") String value;
+		@Column("val&ue")
+		String value;
 	}
 
 	private SqlParametersFactory createSqlParametersFactoryWithConverters(List<?> converters) {
