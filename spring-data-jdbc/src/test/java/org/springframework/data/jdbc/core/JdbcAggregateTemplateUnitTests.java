@@ -21,8 +21,9 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -337,47 +338,70 @@ public class JdbcAggregateTemplateUnitTests {
 		template.deleteAllById(emptyList(), SampleEntity.class);
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@AllArgsConstructor
 	private static class SampleEntity {
 
-		@Column("id1") @Id private Long id;
+		@Column("id1")
+		@Id private Long id;
 
 		private String name;
 	}
 
-	@Data
-	@RequiredArgsConstructor
 	private static class EntityWithVersion {
 
-		@Column("id1") @Id private final Long id;
+		@Column("id1")
+		@Id private final Long id;
 
 		@Version private Long version;
+
+		public EntityWithVersion(Long id) {
+			this.id = id;
+		}
+
+		public Long getId() {
+			return this.id;
+		}
+
+		public Long getVersion() {
+			return this.version;
+		}
+
+		public void setVersion(Long version) {
+			this.version = version;
+		}
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@RequiredArgsConstructor
 	private static class EntityWithImmutableVersion {
 
-		@Column("id1") @Id private final Long id;
+		@Column("id1")
+		@Id private final Long id;
 
 		@Version private final Long version;
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@RequiredArgsConstructor
 	private static class EntityWithPrimitiveVersion {
 
-		@Column("id1") @Id private final Long id;
+		@Column("id1")
+		@Id private final Long id;
 
 		@Version private long version;
 	}
 
-	@Data
+	@Getter
+	@Setter
 	@RequiredArgsConstructor
 	private static class EntityWithImmutablePrimitiveVersion {
 
-		@Column("id1") @Id private final Long id;
+		@Column("id1")
+		@Id private final Long id;
 
 		@Version private final long version;
 	}
