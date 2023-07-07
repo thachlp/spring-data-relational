@@ -21,12 +21,6 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.data.jdbc.core.convert.DefaultDataAccessStrategyUnitTests.*;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.Value;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -93,7 +87,7 @@ class SqlParametersFactoryTest {
 	}
 
 	@Test
-		// DATAJDBC-146
+	// DATAJDBC-146
 	void identifiersGetAddedAsParameters() {
 
 		long id = 4711L;
@@ -108,7 +102,7 @@ class SqlParametersFactoryTest {
 	}
 
 	@Test
-		// DATAJDBC-146
+	// DATAJDBC-146
 	void additionalIdentifierForIdDoesNotLeadToDuplicateParameters() {
 
 		long id = 4711L;
@@ -121,7 +115,7 @@ class SqlParametersFactoryTest {
 	}
 
 	@Test
-		// DATAJDBC-235
+	// DATAJDBC-235
 	void considersConfiguredWriteConverter() {
 
 		SqlParametersFactory sqlParametersFactory = createSqlParametersFactoryWithConverters(
@@ -136,7 +130,7 @@ class SqlParametersFactoryTest {
 	}
 
 	@Test
-		// DATAJDBC-412
+	// DATAJDBC-412
 	void considersConfiguredWriteConverterForIdValueObjects_onWrite() {
 
 		SqlParametersFactory sqlParametersFactory = createSqlParametersFactoryWithConverters(
@@ -154,7 +148,7 @@ class SqlParametersFactoryTest {
 	}
 
 	@Test
-		// GH-1405
+	// GH-1405
 	void parameterNamesGetSanitized() {
 
 		WithIllegalCharacters entity = new WithIllegalCharacters(23L, "aValue");
@@ -180,22 +174,63 @@ class SqlParametersFactoryTest {
 		}
 	}
 
-	@Getter
-	@Setter
 	private static class WithValueObjectId {
 
-		@Id
-		private final IdValue id;
+		@Id private final IdValue id;
 		String value;
 
 		private WithValueObjectId(IdValue id) {
 			this.id = id;
 		}
+
+		public IdValue getId() {
+			return this.id;
+		}
+
+		public String getValue() {
+			return this.value;
+		}
+
+		public void setValue(String value) {
+			this.value = value;
+		}
 	}
 
-	@Value
-	private static class IdValue {
-		String id;
+	private static final class IdValue {
+		private final String id;
+
+		public IdValue(String id) {
+			this.id = id;
+		}
+
+		public String getId() {
+			return this.id;
+		}
+
+		public boolean equals(final Object o) {
+			if (o == this)
+				return true;
+			if (!(o instanceof IdValue))
+				return false;
+			final IdValue other = (IdValue) o;
+			final Object this$id = this.getId();
+			final Object other$id = other.getId();
+			if (this$id == null ? other$id != null : !this$id.equals(other$id))
+				return false;
+			return true;
+		}
+
+		public int hashCode() {
+			final int PRIME = 59;
+			int result = 1;
+			final Object $id = this.getId();
+			result = result * PRIME + ($id == null ? 43 : $id.hashCode());
+			return result;
+		}
+
+		public String toString() {
+			return "SqlParametersFactoryTest.IdValue(id=" + this.getId() + ")";
+		}
 	}
 
 	@WritingConverter
@@ -220,38 +255,48 @@ class SqlParametersFactoryTest {
 		}
 	}
 
-	@AllArgsConstructor
 	private static class EntityWithBoolean {
 
-		@Id
-		Long id;
+		@Id Long id;
 		boolean flag;
+
+		public EntityWithBoolean(Long id, boolean flag) {
+			this.id = id;
+			this.flag = flag;
+		}
 	}
 
-	@RequiredArgsConstructor // DATAJDBC-349
+	// DATAJDBC-349
 	private static class DummyEntityRoot {
 
-		@Id
-		private final IdValue id;
+		@Id private final IdValue id;
 		List<DummyEntity> dummyEntities = new ArrayList<>();
+
+		public DummyEntityRoot(IdValue id) {
+			this.id = id;
+		}
 	}
 
-	@RequiredArgsConstructor
 	private static class DummyEntity {
 
-		@Id
-		private final Long id;
+		@Id private final Long id;
+
+		public DummyEntity(Long id) {
+			this.id = id;
+		}
 	}
 
-	@AllArgsConstructor
 	private static class WithIllegalCharacters {
 
 		@Column("i.d")
-		@Id
-		Long id;
+		@Id Long id;
 
-		@Column("val&ue")
-		String value;
+		@Column("val&ue") String value;
+
+		public WithIllegalCharacters(Long id, String value) {
+			this.id = id;
+			this.value = value;
+		}
 	}
 
 	private SqlParametersFactory createSqlParametersFactoryWithConverters(List<?> converters) {
