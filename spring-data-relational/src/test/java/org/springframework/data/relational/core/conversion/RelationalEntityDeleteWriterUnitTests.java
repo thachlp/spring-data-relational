@@ -17,7 +17,6 @@ package org.springframework.data.relational.core.conversion;
 
 import static org.assertj.core.api.Assertions.*;
 
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
@@ -152,31 +151,43 @@ public class RelationalEntityDeleteWriterUnitTests {
 		return actions;
 	}
 
-	@Data
 	private static class SomeEntity {
 
 		@Id final Long id;
 		OtherEntity other;
 		// should not trigger own Dbaction
 		String name;
+
+		private SomeEntity(Long id) {
+			this.id = id;
+		}
 	}
 
-	@Data
 	private class OtherEntity {
 
 		@Id final Long id;
 		YetAnother yetAnother;
+
+		private OtherEntity(Long id) {
+			this.id = id;
+		}
 	}
 
-	@Data
 	private class YetAnother {
 		@Id final Long id;
+
+		private YetAnother(Long id) {
+			this.id = id;
+		}
 	}
 
-	@Data
 	private class SingleEntity {
 		@Id final Long id;
 		String name;
+
+		private SingleEntity(Long id) {
+			this.id = id;
+		}
 	}
 
 	@RequiredArgsConstructor

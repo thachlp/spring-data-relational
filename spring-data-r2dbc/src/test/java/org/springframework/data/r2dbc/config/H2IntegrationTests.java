@@ -107,10 +107,7 @@ class H2IntegrationTests {
 		Mono<Long> selectCount();
 	}
 
-	@Data
 	@Table("legoset")
-	@AllArgsConstructor
-	@NoArgsConstructor
 	static class LegoSet {
 		@Id Integer id;
 		String name;
