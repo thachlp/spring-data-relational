@@ -703,13 +703,25 @@ public class EntityRowMapperUnitTests {
 		Trivial child;
 	}
 
-	@With
-	@RequiredArgsConstructor
-	static class OneToOneImmutable {
+	record OneToOneImmutable(
 
-		private final @Id Long id;
-		private final String name;
-		private final TrivialImmutable child;
+			@Id Long id, String name, TrivialImmutable child) {
+
+		OneToOneImmutable(){
+			this(null, null, null);}
+
+
+		public OneToOneImmutable withId(Long id) {
+			return this.id == id ? this : new OneToOneImmutable(id, name, child);
+		}
+
+		public OneToOneImmutable withName(String name) {
+			return this.name == name ? this : new OneToOneImmutable(id, name, child);
+		}
+
+		public OneToOneImmutable withChild(TrivialImmutable child) {
+			return this.child == child ? this : new OneToOneImmutable(id, name, child);
+		}
 	}
 
 	static class OneToSet {
@@ -1226,12 +1238,11 @@ public class EntityRowMapperUnitTests {
 
 	private static class WithAtValue {
 
-		@Id
-		private final Long id;
+		@Id private final Long id;
 		private final @Transient String computed;
 
 		public WithAtValue(Long id,
-						   @org.springframework.beans.factory.annotation.Value("#root.first_name") String computed) {
+				@org.springframework.beans.factory.annotation.Value("#root.first_name") String computed) {
 			this.id = id;
 			this.computed = computed;
 		}
