@@ -19,9 +19,6 @@ import static org.assertj.core.api.Assertions.*;
 
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Row;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import reactor.test.StepVerifier;
 
 import java.util.Arrays;
@@ -111,7 +108,7 @@ public class ConvertingR2dbcRepositoryIntegrationTests {
 	public void shouldInsertAndReadItems() {
 
 		ConvertedEntity entity = new ConvertedEntity();
-		entity.name= "name";
+		entity.name = "name";
 
 		repository.save(entity) //
 				.as(StepVerifier::create) //
