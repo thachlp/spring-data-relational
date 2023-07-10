@@ -19,12 +19,10 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.r2dbc.spi.Parameters;
-import io.r2dbc.spi.R2dbcType;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import io.r2dbc.spi.test.MockColumnMetadata;
 import io.r2dbc.spi.test.MockRowMetadata;
-import lombok.Data;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -38,7 +36,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
-
 import org.springframework.data.annotation.ReadOnlyProperty;
 import org.springframework.data.r2dbc.dialect.R2dbcDialect;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
@@ -61,125 +58,122 @@ public abstract class ReactiveDataAccessStrategyTestSupport {
 
 	@Test // gh-85
 	void shouldReadAndWriteCharacter() {
-		testType((pt, c) -> pt. character = c, pt -> pt.character, 'f', "character");
+		testType((pt, c) -> pt.character = c, pt -> pt.character, 'f', "character");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoolean() {
-		testType( (pt, b) -> pt.booleanValue = b, pt -> pt.booleanValue, true, "boolean_value");
+		testType((pt, b) -> pt.booleanValue = b, pt -> pt.booleanValue, true, "boolean_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedBoolean() {
-		testType((pt, b) -> pt.boxedBooleanValue = b, pt->pt.boxedBooleanValue, true, "boxed_boolean_value");
+		testType((pt, b) -> pt.boxedBooleanValue = b, pt -> pt.boxedBooleanValue, true, "boxed_boolean_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteByte() {
-		testType((pt, b) -> pt.byteValue =b, pt->pt.byteValue, (byte) 123, "byte_value");
+		testType((pt, b) -> pt.byteValue = b, pt -> pt.byteValue, (byte) 123, "byte_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedByte() {
-		testType((pt, b) -> pt.boxedByteValue =b, pt->pt.boxedByteValue, (byte) 123, "boxed_byte_value");
+		testType((pt, b) -> pt.boxedByteValue = b, pt -> pt.boxedByteValue, (byte) 123, "boxed_byte_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteShort() {
-		testType((pt, s) -> pt.shortValue =s, pt->pt.shortValue, (short) 123, "short_value");
+		testType((pt, s) -> pt.shortValue = s, pt -> pt.shortValue, (short) 123, "short_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedShort() {
-		testType((pt, b) -> pt.boxedShortValue =b, pt->pt.boxedShortValue, (short) 123, "boxed_short_value");
+		testType((pt, b) -> pt.boxedShortValue = b, pt -> pt.boxedShortValue, (short) 123, "boxed_short_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteInteger() {
-		testType((pt, i) -> pt.intValue =i, pt->pt.intValue, 123, "int_value");
+		testType((pt, i) -> pt.intValue = i, pt -> pt.intValue, 123, "int_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedInteger() {
-		testType((pt, b) -> pt.boxedIntegerValue =b, pt->pt.boxedIntegerValue, 123, "boxed_integer_value");
+		testType((pt, b) -> pt.boxedIntegerValue = b, pt -> pt.boxedIntegerValue, 123, "boxed_integer_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteLong() {
-		testType((pt, l) -> pt.longValue =l, pt->pt.longValue, 123L, "long_value");
+		testType((pt, l) -> pt.longValue = l, pt -> pt.longValue, 123L, "long_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedLong() {
-		testType((pt, b) -> pt.boxedLongValue =b, pt->pt.boxedLongValue, 123L, "boxed_long_value");
+		testType((pt, b) -> pt.boxedLongValue = b, pt -> pt.boxedLongValue, 123L, "boxed_long_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteFloat() {
-		testType((pt, f) -> pt.floatValue =f, pt->pt.floatValue, 0.1f, "float_value");
+		testType((pt, f) -> pt.floatValue = f, pt -> pt.floatValue, 0.1f, "float_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedFloat() {
-		testType((pt, b) -> pt.boxedFloatValue =b, pt->pt.boxedFloatValue, 0.1f, "boxed_float_value");
+		testType((pt, b) -> pt.boxedFloatValue = b, pt -> pt.boxedFloatValue, 0.1f, "boxed_float_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteDouble() {
-		testType((pt, d) -> pt.doubleValue =d, pt->pt.doubleValue, 0.1, "double_value");
+		testType((pt, d) -> pt.doubleValue = d, pt -> pt.doubleValue, 0.1, "double_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBoxedDouble() {
-		testType((pt, b) -> pt.boxedDoubleValue =b, pt->pt.boxedDoubleValue, 0.1, "boxed_double_value");
+		testType((pt, b) -> pt.boxedDoubleValue = b, pt -> pt.boxedDoubleValue, 0.1, "boxed_double_value");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBigInteger() {
-		testType((pt, b) -> pt.bigInteger =b, pt->pt.bigInteger, BigInteger.TEN, "big_integer");
+		testType((pt, b) -> pt.bigInteger = b, pt -> pt.bigInteger, BigInteger.TEN, "big_integer");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteBigDecimal() {
-		testType((pt, b) -> pt.bigDecimal =b, pt->pt.bigDecimal, new BigDecimal("100.123"), "big_decimal");
+		testType((pt, b) -> pt.bigDecimal = b, pt -> pt.bigDecimal, new BigDecimal("100.123"), "big_decimal");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteLocalDate() {
-		testType((pt, l) -> pt.localDate =l, pt->pt.localDate, LocalDate.now(), "local_date");
+		testType((pt, l) -> pt.localDate = l, pt -> pt.localDate, LocalDate.now(), "local_date");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteLocalTime() {
-		testType((pt, l) -> pt.localTime =l, pt->pt.localTime, LocalTime.now(), "local_time");
+		testType((pt, l) -> pt.localTime = l, pt -> pt.localTime, LocalTime.now(), "local_time");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteLocalDateTime() {
-		testType((pt, l) -> pt.localDateTime =l, pt->pt.localDateTime, LocalDateTime.now(),
-				"local_date_time");
+		testType((pt, l) -> pt.localDateTime = l, pt -> pt.localDateTime, LocalDateTime.now(), "local_date_time");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteZonedDateTime() {
-		testType((pt, z) -> pt.zonedDateTime =z, pt->pt.zonedDateTime, ZonedDateTime.now(),
-				"zoned_date_time");
+		testType((pt, z) -> pt.zonedDateTime = z, pt -> pt.zonedDateTime, ZonedDateTime.now(), "zoned_date_time");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteOffsetDateTime() {
-		testType((pt, o) -> pt.offsetDateTime =o, pt->pt.offsetDateTime, OffsetDateTime.now(),
-				"offset_date_time");
+		testType((pt, o) -> pt.offsetDateTime = o, pt -> pt.offsetDateTime, OffsetDateTime.now(), "offset_date_time");
 	}
 
 	@Test // gh-85
 	void shouldReadAndWriteUuid() {
-		testType((pt, u) -> pt.uuid =u, pt->pt.uuid, UUID.randomUUID(), "uuid");
+		testType((pt, u) -> pt.uuid = u, pt -> pt.uuid, UUID.randomUUID(), "uuid");
 	}
 
 	@Test // gh-186
 	void shouldReadAndWriteBinary() {
-		testType((pt, b) -> pt.binary =b, pt->pt.binary, "hello".getBytes(), "binary");
+		testType((pt, b) -> pt.binary = b, pt -> pt.binary, "hello".getBytes(), "binary");
 	}
 
 	@Test // gh-354
@@ -187,9 +181,9 @@ public abstract class ReactiveDataAccessStrategyTestSupport {
 
 		TypeWithReadOnlyFields toSave = new TypeWithReadOnlyFields();
 
-		toSave.setWritableField("writable");
-		toSave.setReadOnlyField("readonly");
-		toSave.setReadOnlyArrayField("readonly_array".getBytes());
+		toSave.writableField = "writable";
+		toSave.readOnlyField = "readonly";
+		toSave.readOnlyArrayField = "readonly_array".getBytes();
 
 		assertThat(getStrategy().getOutboundRow(toSave)).containsOnlyKeys(SqlIdentifier.unquoted("writable_field"));
 	}
@@ -200,7 +194,9 @@ public abstract class ReactiveDataAccessStrategyTestSupport {
 		ReactiveDataAccessStrategy strategy = getStrategy();
 		Row rowMock = mock(Row.class);
 		RowMetadata metadataMock = MockRowMetadata.builder()
-				.columnMetadata(MockColumnMetadata.builder().name(fieldname).type(Parameters.in(testValue.getClass()).getType()).build()).build();
+				.columnMetadata(
+						MockColumnMetadata.builder().name(fieldname).type(Parameters.in(testValue.getClass()).getType()).build())
+				.build();
 
 		PrimitiveTypes toSave = new PrimitiveTypes();
 		setter.accept(toSave, testValue);
@@ -250,7 +246,6 @@ public abstract class ReactiveDataAccessStrategyTestSupport {
 		UUID uuid;
 	}
 
-	@Data
 	static class TypeWithReadOnlyFields {
 		String writableField;
 		@ReadOnlyProperty String readOnlyField;

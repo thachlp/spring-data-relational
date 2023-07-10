@@ -111,7 +111,7 @@ public class ConvertingR2dbcRepositoryIntegrationTests {
 	public void shouldInsertAndReadItems() {
 
 		ConvertedEntity entity = new ConvertedEntity();
-		entity.setName("name");
+		entity.name= "name";
 
 		repository.save(entity) //
 				.as(StepVerifier::create) //
@@ -121,7 +121,7 @@ public class ConvertingR2dbcRepositoryIntegrationTests {
 		repository.findAll() //
 				.as(StepVerifier::create) //
 				.consumeNextWith(actual -> {
-					assertThat(actual.getName()).isEqualTo("read: prefixed: name");
+					assertThat(actual.name).isEqualTo("read: prefixed: name");
 				}).verifyComplete();
 	}
 
@@ -129,9 +129,6 @@ public class ConvertingR2dbcRepositoryIntegrationTests {
 
 	}
 
-	@AllArgsConstructor
-	@NoArgsConstructor
-	@Data
 	static class ConvertedEntity {
 		@Id Integer id;
 		String name;
@@ -147,11 +144,11 @@ public class ConvertingR2dbcRepositoryIntegrationTests {
 
 			OutboundRow outboundRow = new OutboundRow();
 
-			if (convertedEntity.getId() != null) {
-				outboundRow.put("id", Parameter.from(convertedEntity.getId()));
+			if (convertedEntity.id != null) {
+				outboundRow.put("id", Parameter.from(convertedEntity.id));
 			}
 
-			outboundRow.put("name", Parameter.from("prefixed: " + convertedEntity.getName()));
+			outboundRow.put("name", Parameter.from("prefixed: " + convertedEntity.name));
 
 			return outboundRow;
 		}
@@ -166,8 +163,8 @@ public class ConvertingR2dbcRepositoryIntegrationTests {
 		public ConvertedEntity convert(Row source) {
 
 			ConvertedEntity entity = new ConvertedEntity();
-			entity.setId(source.get("id", Integer.class));
-			entity.setName("read: " + source.get("name", String.class));
+			entity.id = source.get("id", Integer.class);
+			entity.name = "read: " + source.get("name", String.class);
 
 			return entity;
 		}
