@@ -32,7 +32,6 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.core.convert.converter.ConditionalConverter;
 import org.springframework.core.convert.converter.GenericConverter;
@@ -200,10 +199,7 @@ class PostgresMappingR2dbcConverterUnitTests {
 		}
 	}
 
-	@AllArgsConstructor
-	private static class JsonHolder {
-
-		private final Json json;
+	record JsonHolder(Json json) {
 
 	}
 

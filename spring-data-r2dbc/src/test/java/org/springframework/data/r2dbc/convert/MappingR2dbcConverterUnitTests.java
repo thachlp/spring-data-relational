@@ -20,7 +20,6 @@ import io.r2dbc.spi.Row;
 import io.r2dbc.spi.test.MockColumnMetadata;
 import io.r2dbc.spi.test.MockRow;
 import io.r2dbc.spi.test.MockRowMetadata;
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
@@ -326,10 +325,8 @@ public class MappingR2dbcConverterUnitTests {
 		}
 	}
 
-	@RequiredArgsConstructor
-	static class WithPrimitiveId {
-
-		@Id final long id;
+	record WithPrimitiveId (
+		@Id long id){
 	}
 
 	static class CustomConversionPerson {
