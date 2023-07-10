@@ -1005,7 +1005,6 @@ class PartTreeR2dbcQueryUnitTests {
 	}
 
 	@Table("users")
-	@Data
 	private static class User {
 
 		private @Id Long id;
@@ -1017,7 +1016,6 @@ class PartTreeR2dbcQueryUnitTests {
 	}
 
 	@Table("users")
-	@Data
 	private static class WithoutId {
 
 		private String firstName;
