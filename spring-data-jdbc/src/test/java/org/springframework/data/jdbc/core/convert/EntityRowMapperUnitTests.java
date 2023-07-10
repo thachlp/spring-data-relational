@@ -15,13 +15,6 @@
  */
 package org.springframework.data.jdbc.core.convert;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
-import static org.assertj.core.api.Assertions.*;
-import static org.assertj.core.api.SoftAssertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,21 +22,6 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.With;
-
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.naming.OperationNotSupportedException;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
@@ -65,6 +43,26 @@ import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.repository.query.Param;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedCaseInsensitiveMap;
+
+import javax.naming.OperationNotSupportedException;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.Arrays.*;
+import static java.util.Collections.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.SoftAssertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests the extraction of entities from a {@link ResultSet} by the {@link EntityRowMapper}.
@@ -1190,11 +1188,15 @@ public class EntityRowMapperUnitTests {
 		}
 	}
 
-	@AllArgsConstructor
 	private static class Fixture<T> {
 
 		final ResultSet resultSet;
 		final List<Expectation<T>> expectations;
+
+		public Fixture(ResultSet resultSet, List<Expectation<T>> expectations) {
+			this.resultSet = resultSet;
+			this.expectations = expectations;
+		}
 
 		public void assertOn(T result) {
 
@@ -1209,24 +1211,37 @@ public class EntityRowMapperUnitTests {
 		}
 	}
 
-	@AllArgsConstructor
 	private static class Expectation<T> {
 
 		final Function<T, Object> extractor;
 		final Object expectedValue;
 		final String sourceColumn;
+
+		public Expectation(Function<T, Object> extractor, Object expectedValue, String sourceColumn) {
+			this.extractor = extractor;
+			this.expectedValue = expectedValue;
+			this.sourceColumn = sourceColumn;
+		}
 	}
 
-	@Getter
 	private static class WithAtValue {
 
-		@Id private final Long id;
+		@Id
+		private final Long id;
 		private final @Transient String computed;
 
 		public WithAtValue(Long id,
-				@org.springframework.beans.factory.annotation.Value("#root.first_name") String computed) {
+						   @org.springframework.beans.factory.annotation.Value("#root.first_name") String computed) {
 			this.id = id;
 			this.computed = computed;
+		}
+
+		public Long getId() {
+			return this.id;
+		}
+
+		public String getComputed() {
+			return this.computed;
 		}
 	}
 }

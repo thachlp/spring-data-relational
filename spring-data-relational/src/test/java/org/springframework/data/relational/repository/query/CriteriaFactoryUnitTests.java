@@ -17,7 +17,6 @@ package org.springframework.data.relational.repository.query;
 
 import static org.assertj.core.api.Assertions.*;
 
-import lombok.SneakyThrows;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -70,10 +69,14 @@ public class CriteriaFactoryUnitTests {
 		assertThat(criteria.getValue()).isEqualTo(Arrays.asList("foo", "bar"));
 	}
 
-	@SneakyThrows
 	private QueryMethod getQueryMethod(String methodName, Class<?>... parameterTypes) {
 
-		Method method = UserRepository.class.getMethod(methodName, parameterTypes);
+		Method method = null;
+		try {
+			method = UserRepository.class.getMethod(methodName, parameterTypes);
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException(e);
+		}
 		return new QueryMethod(method, new DefaultRepositoryMetadata(UserRepository.class),
 				new SpelAwareProxyProjectionFactory());
 	}
