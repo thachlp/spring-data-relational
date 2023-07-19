@@ -126,8 +126,9 @@ class SqlGenerator {
 
 		AggregatePath parentPath = path.getParentPath();
 
+		// TODO: Introduce methods to express what >2 and == 2 means
 		if (!parentPath.hasIdProperty()) {
-			if (parentPath.getLength() > 1) {
+			if (parentPath.getLength() > 2) {
 				return getSubselectCondition(parentPath, rootCondition, filterColumn);
 			}
 			return rootCondition.apply(filterColumn);
@@ -139,7 +140,7 @@ class SqlGenerator {
 
 		Condition innerCondition;
 
-		if (parentPath.getLength() == 1) { // if the parent is the root of the path
+		if (parentPath.getLength() == 2) { // if the parent is the root of the path
 
 			// apply the rootCondition
 			innerCondition = rootCondition.apply(selectFilterColumn);
@@ -233,7 +234,8 @@ class SqlGenerator {
 	 *          keyColumn must not be {@code null}.
 	 * @return a SQL String.
 	 */
-	String getFindAllByProperty(Identifier parentIdentifier, @Nullable AggregatePath.ColumnInfo keyColumn, boolean ordered) {
+	String getFindAllByProperty(Identifier parentIdentifier, @Nullable AggregatePath.ColumnInfo keyColumn,
+			boolean ordered) {
 
 		Assert.isTrue(keyColumn != null || !ordered,
 				"If the SQL statement should be ordered a keyColumn to order by must be provided");
@@ -717,7 +719,7 @@ class SqlGenerator {
 
 		Column filterColumn = table.column(path.getTableInfo().reverseColumnInfo().name());
 
-		if (path.getLength() == 1) {
+		if (path.getLength() == 2) {
 
 			delete = builder //
 					.where(rootCondition.apply(filterColumn)) //

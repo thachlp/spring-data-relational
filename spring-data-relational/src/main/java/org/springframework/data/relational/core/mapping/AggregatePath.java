@@ -27,11 +27,11 @@ import org.springframework.lang.Nullable;
 
 /**
  * Represents a path within an aggregate starting from the aggregate root. The path can be iterated from the leaf to its
- * root. Note that {@link #getLength()} represents the path length not including its root so length and iteration size
- * are one off. // TODO align getLength to
+ * root.
  *
  * @since 3.2
  * @author Jens Schauder
+ * @author Mark Paluch
  */
 public interface AggregatePath extends Iterable<AggregatePath> {
 
@@ -57,13 +57,12 @@ public interface AggregatePath extends Iterable<AggregatePath> {
 	boolean isRoot();
 
 	/**
-	 * Returns the path length for the aggregate path. Note that the path length differs from {@link #iterator() iteration
-	 * length}.
+	 * Returns the path length for the aggregate path.
 	 *
 	 * @return the path length for the aggregate path
 	 */
 	default int getLength() {
-		return isRoot() ? 0 : getRequiredPersistentPropertyPath().getLength();
+		return 1 + (isRoot() ? 0 : getRequiredPersistentPropertyPath().getLength());
 	}
 
 	boolean isWritable();

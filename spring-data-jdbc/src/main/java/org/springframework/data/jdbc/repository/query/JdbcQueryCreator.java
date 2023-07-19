@@ -127,16 +127,18 @@ class JdbcQueryCreator extends RelationalQueryCreator<ParametrizedQuery> {
 						.getPersistentPropertyPath(part.getProperty());
 				AggregatePath path = context.getAggregatePath(propertyPath);
 
-				for (AggregatePath pathToValidate = path; path.getLength() > 0; path = path.getParentPath()) {
-					validateProperty(pathToValidate);
-				}
+				path.forEach(JdbcQueryCreator::validateProperty);
 			}
 		}
 	}
 
 	private static void validateProperty(AggregatePath path) {
 
-		if (!path.getParentPath().isEmbedded() && path.getLength() > 1) {
+		if (path.isRoot()) {
+			return;
+		}
+
+		if (!path.getParentPath().isEmbedded() && path.getLength() > 2) {
 			throw new IllegalArgumentException(String.format("Cannot query by nested property: %s", path.toDotPath()));
 		}
 
