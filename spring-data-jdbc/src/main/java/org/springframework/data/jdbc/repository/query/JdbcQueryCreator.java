@@ -244,7 +244,7 @@ class JdbcQueryCreator extends RelationalQueryCreator<ParametrizedQuery> {
 			AggregatePath aggregatePath = context.getAggregatePath(path);
 
 			if (returnedType.needsCustomConstruction()) {
-				if (!returnedType.getInputProperties().contains(aggregatePath.getBaseProperty().getName())) {
+				if (!returnedType.getInputProperties().contains(aggregatePath.getRequiredBaseProperty().getName())) {
 					continue;
 				}
 			}

@@ -20,7 +20,7 @@ import org.springframework.data.relational.core.sql.SqlIdentifier;
 import org.springframework.lang.Nullable;
 
 /**
- * A {@link PersistentProperty} with methods for additional JDBC/RDBMS related meta data.
+ * A {@link PersistentProperty} with methods for additional RDBMS related metadata based on columns.
  *
  * @author Jens Schauder
  * @author Oliver Gierke
@@ -39,14 +39,16 @@ public interface RelationalPersistentProperty extends PersistentProperty<Relatio
 	RelationalPersistentEntity<?> getOwner();
 
 	/**
-	 * @deprecated use {@link #getReverseColumnName(AggregatePath)} instead
+	 * @deprecated use {@link #getReverseColumnName(RelationalPersistentEntity)} instead
 	 */
 	@Deprecated(since = "3.2", forRemoval = true)
 	SqlIdentifier getReverseColumnName(PersistentPropertyPathExtension path);
 
-	default SqlIdentifier getReverseColumnName(AggregatePath path) {
-		return getReverseColumnName(PersistentPropertyPathExtension.from(path));
-	}
+	/**
+	 * @param owner the owning entity.
+	 * @return the column name to represent the owning side.
+	 */
+	SqlIdentifier getReverseColumnName(RelationalPersistentEntity<?> owner);
 
 	@Nullable
 	SqlIdentifier getKeyColumn();
@@ -86,7 +88,7 @@ public interface RelationalPersistentProperty extends PersistentProperty<Relatio
 
 	/**
 	 * Returns whether this property is only to be used during inserts and read.
-	 * 
+	 *
 	 * @since 3.0
 	 */
 	boolean isInsertOnly();

@@ -63,10 +63,6 @@ class CachingNamingStrategy implements NamingStrategy {
 	}
 
 	@Override
-	public String getReverseColumnName(AggregatePath path) {
-		return delegate.getReverseColumnName(path);
-	}
-	@Override
 	public String getReverseColumnName(PersistentPropertyPathExtension path) {
 		return delegate.getReverseColumnName(path);
 	}
@@ -74,6 +70,11 @@ class CachingNamingStrategy implements NamingStrategy {
 	@Override
 	public String getReverseColumnName(RelationalPersistentProperty property) {
 		return delegate.getReverseColumnName(property);
+	}
+
+	@Override
+	public String getReverseColumnName(RelationalPersistentEntity<?> owner) {
+		return delegate.getReverseColumnName(owner);
 	}
 
 	@Override

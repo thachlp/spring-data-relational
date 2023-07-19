@@ -62,19 +62,16 @@ public class DefaultNamingStrategy implements NamingStrategy {
 	}
 
 	@Override
-	public String getReverseColumnName(AggregatePath path) {
-
-		RelationalPersistentEntity<?> leafEntity = path.getIdDefiningParentPath().getRequiredLeafEntity();
-
-		return getColumnNameReferencing(leafEntity);
+	public String getReverseColumnName(RelationalPersistentEntity<?> parent) {
+		return getColumnNameReferencing(parent);
 	}
 
-	private String getColumnNameReferencing(RelationalPersistentEntity<?> leafEntity) {
+	private String getColumnNameReferencing(RelationalPersistentEntity<?> entity) {
 
 		if (foreignKeyNaming == ForeignKeyNaming.IGNORE_RENAMING) {
-			return getTableName(leafEntity.getType());
+			return getTableName(entity.getType());
 		}
 
-		return leafEntity.getTableName().getReference();
+		return entity.getTableName().getReference();
 	}
 }

@@ -16,22 +16,24 @@
 
 package org.springframework.data.relational.core.mapping;
 
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyPath;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
-import org.springframework.data.util.Streamable;
 import org.springframework.lang.Nullable;
 
 /**
- * Represents a path within an aggregate starting from the aggregate root.
+ * Represents a path within an aggregate starting from the aggregate root. The path can be iterated from the leaf to its
+ * root. Note that {@link #getLength()} represents the path length not including its root so length and iteration size
+ * are one off. // TODO align getLength to
  *
  * @since 3.2
  * @author Jens Schauder
  */
-public interface AggregatePath extends Streamable<AggregatePath> {
-
-	boolean isWritable();
-
-	boolean isRoot();
+public interface AggregatePath extends Iterable<AggregatePath> {
 
 	/**
 	 * Returns the path that has the same beginning but is one segment shorter than this path.
@@ -49,26 +51,34 @@ public interface AggregatePath extends Streamable<AggregatePath> {
 	 */
 	AggregatePath append(RelationalPersistentProperty property);
 
-	PersistentPropertyPath<? extends RelationalPersistentProperty> getRequiredPersistentPropertyPath();
-
-	RelationalPersistentProperty getBaseProperty();
+	/**
+	 * @return {@literal true} if this is a root path for the underlying type.
+	 */
+	boolean isRoot();
 
 	/**
-	 * The {@link RelationalPersistentEntity} associated with the leaf of this path.
+	 * Returns the path length for the aggregate path. Note that the path length differs from {@link #iterator() iteration
+	 * length}.
 	 *
-	 * @return Might return {@literal null} when called on a path that does not represent an entity.
+	 * @return the path length for the aggregate path
 	 */
-	@Nullable
-	RelationalPersistentEntity<?> getLeafEntity();
+	default int getLength() {
+		return isRoot() ? 0 : getRequiredPersistentPropertyPath().getLength();
+	}
 
-	int getLength();
-
-	String toDotPath();
+	boolean isWritable();
 
 	/**
 	 * @return {@literal true} when this is an empty path or the path references an entity.
 	 */
 	boolean isEntity();
+
+	/**
+	 * Returns {@literal true} exactly when the path is non-empty and the leaf property an embedded one.
+	 *
+	 * @return if the leaf property is embedded.
+	 */
+	boolean isEmbedded();
 
 	/**
 	 * Returns {@literal true} if there are multiple values for this path, i.e. if the path contains at least one element
@@ -78,18 +88,16 @@ public interface AggregatePath extends Streamable<AggregatePath> {
 	 */
 	boolean isMultiValued();
 
-	TableInfo getTableInfo();
-
-	ColumnInfo getColumnInfo();
+	/**
+	 * @return {@literal true} when this is references a {@link java.util.List} or {@link java.util.Map}.
+	 */
+	boolean isQualified();
 
 	/**
-	 * The {@link RelationalPersistentEntity} associated with the leaf of this path or throw {@link IllegalStateException}
-	 * if the leaf cannot be resolved.
-	 *
-	 * @return the required {@link RelationalPersistentEntity} associated with the leaf of this path.
-	 * @throws IllegalStateException if the persistent entity cannot be resolved.
+	 * @return {@literal true} if the leaf property of this path is a {@link java.util.Map}.
+	 * @see RelationalPersistentProperty#isMap()
 	 */
-	RelationalPersistentEntity<?> getRequiredLeafEntity();
+	boolean isMap();
 
 	/**
 	 * @return {@literal true} when this is references a {@link java.util.Collection} or an array.
@@ -103,99 +111,161 @@ public interface AggregatePath extends Streamable<AggregatePath> {
 	boolean isOrdered();
 
 	/**
-	 * @return {@literal true} if this path represents an entity which has an Id attribute.
+	 * @return {@literal true} if this path represents an entity which has an identifier attribute.
 	 */
 	boolean hasIdProperty();
 
 	RelationalPersistentProperty getRequiredIdProperty();
 
 	/**
-	 * Returns {@literal true} exactly when the path is non empty and the leaf property an embedded one.
+	 * @return the persistent property path if the path is not a {@link #isRoot() root} path.
+	 * @throws IllegalStateException if the current path is a {@link #isRoot() root} path.
+	 * @see PersistentPropertyPath#getBaseProperty()
+	 */
+	PersistentPropertyPath<RelationalPersistentProperty> getRequiredPersistentPropertyPath();
+
+	/**
+	 * @return the base property.
+	 * @throws IllegalStateException if the current path is a {@link #isRoot() root} path.
+	 * @see PersistentPropertyPath#getBaseProperty()
+	 */
+	default RelationalPersistentProperty getRequiredBaseProperty() {
+		return getRequiredPersistentPropertyPath().getBaseProperty();
+	}
+
+	/**
+	 * @return the leaf property.
+	 * @throws IllegalStateException if the current path is a {@link #isRoot() root} path.
+	 * @see PersistentPropertyPath#getLeafProperty()
+	 */
+	default RelationalPersistentProperty getRequiredLeafProperty() {
+		return getRequiredPersistentPropertyPath().getLeafProperty();
+	}
+
+	/**
+	 * The {@link RelationalPersistentEntity} associated with the leaf of this path.
 	 *
-	 * @return if the leaf property is embedded.
+	 * @return Might return {@literal null} when called on a path that does not represent an entity.
 	 */
-	boolean isEmbedded();
+	@Nullable
+	RelationalPersistentEntity<?> getLeafEntity();
 
 	/**
-	 * @return {@literal true} if the leaf property of this path is a {@link java.util.Map}.
-	 * @see RelationalPersistentProperty#isMap()
+	 * The {@link RelationalPersistentEntity} associated with the leaf of this path or throw {@link IllegalStateException}
+	 * if the leaf cannot be resolved.
+	 *
+	 * @return the required {@link RelationalPersistentEntity} associated with the leaf of this path.
+	 * @throws IllegalStateException if the persistent entity cannot be resolved.
 	 */
-	boolean isMap();
+	default RelationalPersistentEntity<?> getRequiredLeafEntity() {
+
+		RelationalPersistentEntity<?> entity = getLeafEntity();
+
+		if (entity == null) {
+
+			throw new IllegalStateException(String.format("Couldn't resolve leaf PersistentEntity for type %s",
+					getRequiredLeafProperty().getActualType()));
+		}
+
+		return entity;
+	}
 
 	/**
-	 * @return {@literal true} when this is references a {@link java.util.List} or {@link java.util.Map}.
+	 * Returns the dot based path notation using {@link PersistentProperty#getName()}.
+	 *
+	 * @return will never be {@literal null}.
 	 */
-	boolean isQualified();
+	String toDotPath();
+
+	// TODO: Conceptually, AggregatePath works with properties. The mapping into columns and tables should reside in a
+	// utility that can distinguish whether a property maps to one or many columns (e.g. embedded) and the same for
+	// identifier columns.
+	TableInfo getTableInfo();
+
+	ColumnInfo getColumnInfo();
+
+	/**
+	 * Filter the AggregatePath returning the first item matching the given {@link Predicate}.
+	 *
+	 * @param predicate must not be {@literal null}.
+	 * @return the first matching element or {@literal null}.
+	 */
+	@Nullable
+	default AggregatePath filter(Predicate<? super AggregatePath> predicate) {
+
+		for (AggregatePath item : this) {
+			if (predicate.test(item)) {
+				return item;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Creates a non-parallel {@link Stream} of the underlying {@link Iterable}.
+	 *
+	 * @return will never be {@literal null}.
+	 */
+	default Stream<AggregatePath> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
 
 	// path navigation
 
 	/**
 	 * Returns the longest ancestor path that has an {@link org.springframework.data.annotation.Id} property.
 	 *
-	 * @return A path that starts just as this path but is shorter. Guaranteed to be not {@literal null}.
+	 * @return A path that starts just as this path but is shorter. Guaranteed to be not {@literal null}. TODO: throws
+	 *         NoSuchElementException: No value present for empty paths
 	 */
 	AggregatePath getIdDefiningParentPath();
 
-	/**
-	 * Finds and returns the longest path with ich identical or an ancestor to the current path and maps directly to a
-	 * table.
-	 *
-	 * @return a path. Guaranteed to be not {@literal null}.
-	 */
-	AggregatePath getTableOwningAncestor();
+	record TableInfo(
 
+			/**
+			 * The fully qualified name of the table this path is tied to or of the longest ancestor path that is actually
+			 * tied to a table.
+			 *
+			 * @return the name of the table. Guaranteed to be not {@literal null}.
+			 * @since 3.0
+			 */
+			SqlIdentifier qualifiedTableName,
 
+			/**
+			 * The alias used for the table on which this path is based.
+			 *
+			 * @return a table alias, {@literal null} if the table owning path is the empty path.
+			 */
+			@Nullable SqlIdentifier tableAlias,
 
-	RelationalPersistentProperty getRequiredLeafProperty();
+			ColumnInfo reverseColumnInfo,
 
-	record TableInfo (
+			/**
+			 * The column used for the list index or map key of the leaf property of this path.
+			 *
+			 * @return May be {@literal null}.
+			 */
+			@Nullable ColumnInfo qualifierColumnInfo,
 
+			/**
+			 * The type of the qualifier column of the leaf property of this path or {@literal null} if this is not
+			 * applicable.
+			 *
+			 * @return may be {@literal null}.
+			 */
+			@Nullable Class<?> qualifierColumnType,
 
-		/**
-		 * The fully qualified name of the table this path is tied to or of the longest ancestor path that is actually tied
-		 * to a table.
-		 *
-		 * @return the name of the table. Guaranteed to be not {@literal null}.
-		 * @since 3.0
-		 */
-		SqlIdentifier qualifiedTableName,
+			/**
+			 * The column name of the id column of the ancestor path that represents an actual table.
+			 */
+			SqlIdentifier idColumnName,
 
-		/**
-		 * The alias used for the table on which this path is based.
-		 *
-		 * @return a table alias, {@literal null} if the table owning path is the empty path.
-		 */
-		@Nullable
-		SqlIdentifier tableAlias,
-
-		ColumnInfo reverseColumnInfo,
-
-		/**
-		 * The column used for the list index or map key of the leaf property of this path.
-		 *
-		 * @return May be {@literal null}.
-		 */
-		@Nullable
-		ColumnInfo qualifierColumnInfo,
-
-		/**
-		 * The type of the qualifier column of the leaf property of this path or {@literal null} if this is not applicable.
-		 *
-		 * @return may be {@literal null}.
-		 */
-		@Nullable
-		Class<?> qualifierColumnType,
-
-		/**
-		 * The column name of the id column of the ancestor path that represents an actual table.
-		 */
-		SqlIdentifier idColumnName,
-
-		/**
-		 * If the table owning ancestor has an id the column name of that id property is returned. Otherwise the reverse
-		 * column is returned.
-		 */
-		SqlIdentifier effectiveIdColumnName){
+			/**
+			 * If the table owning ancestor has an id the column name of that id property is returned. Otherwise the reverse
+			 * column is returned.
+			 */
+			SqlIdentifier effectiveIdColumnName) {
 
 	}
 

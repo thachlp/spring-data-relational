@@ -86,15 +86,8 @@ public class PersistentPropertyPathExtension {
 		return path == null || path.getLeafProperty().isWritable() && isWritable(path.getParentPath());
 	}
 
-	public static PersistentPropertyPathExtension from(AggregatePath path) {
-		if (path instanceof DefaultAggregatePath dap) {
-			return dap.getPathExtension();
-		}
-		throw new IllegalStateException("Can't create PersistentPropertyPathExtension only from DefaultAggregatePath");
-	}
-
 	/**
-	 * Returns {@literal true} exactly when the path is non empty and the leaf property an embedded one.
+	 * Returns {@literal true} exactly when the path is non-empty and the leaf property an embedded one.
 	 *
 	 * @return if the leaf property is embedded.
 	 */

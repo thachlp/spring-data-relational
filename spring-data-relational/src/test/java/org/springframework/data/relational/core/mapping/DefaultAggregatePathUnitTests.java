@@ -299,7 +299,7 @@ class DefaultAggregatePathUnitTests {
 			softly.assertThat(path("secondList").getTableInfo().tableAlias()).isEqualTo(quoted("secondList"));
 			softly.assertThat(path("second2.third").getTableInfo().tableAlias()).isEqualTo(quoted("secthird"));
 			softly.assertThat(path("second3.third").getTableInfo().tableAlias()).isEqualTo(quoted("third"));
-		});                                                                 
+		});
 	}
 
 	@Test // GH-1525
@@ -374,10 +374,13 @@ class DefaultAggregatePathUnitTests {
 
 		assertSoftly(softly -> {
 
-			softly.assertThat(path("second.third2.value").getBaseProperty()).isEqualTo(entity.getPersistentProperty("second"));
-			softly.assertThat(path("second.third.value").getBaseProperty()).isEqualTo(entity.getPersistentProperty("second"));
-			softly.assertThat(path("secondList.third2.value").getBaseProperty()).isEqualTo(entity.getPersistentProperty("secondList"));
-			softly.assertThatThrownBy(() -> path().getBaseProperty()).isInstanceOf(IllegalStateException.class);
+			softly.assertThat(path("second.third2.value").getRequiredBaseProperty())
+					.isEqualTo(entity.getPersistentProperty("second"));
+			softly.assertThat(path("second.third.value").getRequiredBaseProperty())
+					.isEqualTo(entity.getPersistentProperty("second"));
+			softly.assertThat(path("secondList.third2.value").getRequiredBaseProperty())
+					.isEqualTo(entity.getPersistentProperty("secondList"));
+			softly.assertThatThrownBy(() -> path().getRequiredBaseProperty()).isInstanceOf(IllegalStateException.class);
 		});
 	}
 
