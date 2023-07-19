@@ -23,10 +23,21 @@ import java.util.function.Predicate;
  */
 class AggregatePathTraversal {
 
-	public static AggregatePath findIdDefiningPath(AggregatePath aggregatePath) {
+	public static AggregatePath getIdDefiningPath(AggregatePath aggregatePath) {
 
 		Predicate<AggregatePath> idDefiningPathFilter = ap -> !ap.equals(aggregatePath)
 				&& (ap.isRoot() || ap.hasIdProperty());
+
+		AggregatePath result = aggregatePath.filter(idDefiningPathFilter);
+		if (result == null) {
+			throw new NoSuchElementException();
+		}
+		return result;
+	}
+
+	public static AggregatePath getTableOwningPath(AggregatePath aggregatePath) {
+
+		Predicate<AggregatePath> idDefiningPathFilter = ap -> ap.isEntity() && !ap.isEmbedded();
 
 		AggregatePath result = aggregatePath.filter(idDefiningPathFilter);
 		if (result == null) {

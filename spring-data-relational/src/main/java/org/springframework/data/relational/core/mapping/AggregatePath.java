@@ -24,6 +24,7 @@ import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyPath;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Represents a path within an aggregate starting from the aggregate root. The path can be iterated from the leaf to its
@@ -81,7 +82,9 @@ public interface AggregatePath extends Iterable<AggregatePath> {
 
 	/**
 	 * Returns {@literal true} if there are multiple values for this path, i.e. if the path contains at least one element
-	 * that is a collection and array or a map.
+	 * that is a collection and array or a map. // TODO: why does this return true if the parent entity is a collection?
+	 * This seems to mix some concepts that belong to somewhere else. // TODO: Multi-valued could be understood for
+	 * embeddables with more than one column (i.e. composite primary keys)
 	 *
 	 * @return {@literal true} if the path contains a multivalued element.
 	 */
@@ -179,9 +182,13 @@ public interface AggregatePath extends Iterable<AggregatePath> {
 	// TODO: Conceptually, AggregatePath works with properties. The mapping into columns and tables should reside in a
 	// utility that can distinguish whether a property maps to one or many columns (e.g. embedded) and the same for
 	// identifier columns.
-	TableInfo getTableInfo();
+	default TableInfo getTableInfo() {
+		return TableInfo.of(this);
+	}
 
-	ColumnInfo getColumnInfo();
+	default ColumnInfo getColumnInfo() {
+		return ColumnInfo.of(this);
+	}
 
 	/**
 	 * Filter the AggregatePath returning the first item matching the given {@link Predicate}.
@@ -222,65 +229,114 @@ public interface AggregatePath extends Iterable<AggregatePath> {
 
 	record TableInfo(
 
-			/**
+			/*
 			 * The fully qualified name of the table this path is tied to or of the longest ancestor path that is actually
 			 * tied to a table.
-			 *
-			 * @return the name of the table. Guaranteed to be not {@literal null}.
-			 * @since 3.0
 			 */
 			SqlIdentifier qualifiedTableName,
 
-			/**
+			/*
 			 * The alias used for the table on which this path is based.
-			 *
-			 * @return a table alias, {@literal null} if the table owning path is the empty path.
 			 */
 			@Nullable SqlIdentifier tableAlias,
 
 			ColumnInfo reverseColumnInfo,
 
-			/**
+			/*
 			 * The column used for the list index or map key of the leaf property of this path.
-			 *
-			 * @return May be {@literal null}.
 			 */
 			@Nullable ColumnInfo qualifierColumnInfo,
 
-			/**
+			/*
 			 * The type of the qualifier column of the leaf property of this path or {@literal null} if this is not
 			 * applicable.
-			 *
-			 * @return may be {@literal null}.
 			 */
 			@Nullable Class<?> qualifierColumnType,
 
-			/**
+			/*
 			 * The column name of the id column of the ancestor path that represents an actual table.
 			 */
 			SqlIdentifier idColumnName,
 
-			/**
+			/*
 			 * If the table owning ancestor has an id the column name of that id property is returned. Otherwise the reverse
 			 * column is returned.
 			 */
 			SqlIdentifier effectiveIdColumnName) {
 
+		static TableInfo of(AggregatePath path) {
+
+			AggregatePath tableOwner = AggregatePathTraversal.getTableOwningPath(path);
+
+			RelationalPersistentEntity<?> leafEntity = tableOwner.getRequiredLeafEntity();
+			SqlIdentifier qualifiedTableName = leafEntity.getQualifiedTableName();
+
+			SqlIdentifier tableAlias = tableOwner.isRoot() ? null : AggregatePathTableUtils.constructTableAlias(tableOwner);
+
+			ColumnInfo reverseColumnInfo = null;
+			if (!tableOwner.isRoot()) {
+
+				AggregatePath idDefiningParentPath = tableOwner.getIdDefiningParentPath();
+				RelationalPersistentProperty leafProperty = tableOwner.getRequiredLeafProperty();
+
+				SqlIdentifier reverseColumnName = leafProperty
+						.getReverseColumnName(idDefiningParentPath.getRequiredLeafEntity());
+
+				reverseColumnInfo = new ColumnInfo(reverseColumnName,
+						AggregatePathTableUtils.prefixWithTableAlias(path, reverseColumnName));
+			}
+
+			ColumnInfo qualifierColumnInfo = null;
+			if (!path.isRoot()) {
+
+				SqlIdentifier keyColumn = path.getRequiredLeafProperty().getKeyColumn();
+				if (keyColumn != null) {
+					qualifierColumnInfo = new ColumnInfo(keyColumn, keyColumn);
+				}
+			}
+
+			Class<?> qualifierColumnType = null;
+			if (!path.isRoot() && path.getRequiredLeafProperty().isQualified()) {
+				qualifierColumnType = path.getRequiredLeafProperty().getQualifierColumnType();
+			}
+
+			SqlIdentifier idColumnName = leafEntity.hasIdProperty() ? leafEntity.getIdColumn() : null;
+
+			SqlIdentifier effectiveIdColumnName = tableOwner.isRoot() ? idColumnName : reverseColumnInfo.name();
+
+			return new TableInfo(qualifiedTableName, tableAlias, reverseColumnInfo, qualifierColumnInfo, qualifierColumnType,
+					idColumnName, effectiveIdColumnName);
+
+		}
 	}
 
 	record ColumnInfo(
 
-			/**
-			 * The name of the column used to represent this property in the database.
-			 *
-			 * @throws IllegalStateException when called on an empty path.
-			 */
-			SqlIdentifier name,
-			/**
-			 * The alias for the column used to represent this property in the database.
-			 *
-			 * @throws IllegalStateException when called on an empty path.
-			 */
+			/* The name of the column used to represent this property in the database. */
+			SqlIdentifier name, /* The alias for the column used to represent this property in the database. */
 			SqlIdentifier alias) {
+
+		/**
+		 * Create a {@link ColumnInfo} from an aggregate path. ColumnInfo can be created for simple type single-value
+		 * properties only.
+		 *
+		 * @param path
+		 * @return the {@link ColumnInfo}.
+		 * @throws IllegalArgumentException if the path is {@link #isRoot()}, {@link #isEmbedded()} or
+		 *           {@link #isMultiValued()}.
+		 */
+		static ColumnInfo of(AggregatePath path) {
+
+			Assert.notNull(path, "AggregatePath must not be null");
+			Assert.isTrue(!path.isRoot(), () -> "Cannot obtain ColumnInfo for root path");
+			Assert.isTrue(!path.isEmbedded(), () -> "Cannot obtain ColumnInfo for embedded path");
+
+			// TODO: Multi-valued paths cannot be represented with a single column
+			// Assert.isTrue(!path.isMultiValued(), () -> "Cannot obtain ColumnInfo for multi-valued path");
+
+			SqlIdentifier name = AggregatePathTableUtils.assembleColumnName(path,
+					path.getRequiredLeafProperty().getColumnName());
+			return new ColumnInfo(name, AggregatePathTableUtils.prefixWithTableAlias(path, name));
+		}
 	}
 }

@@ -15,19 +15,11 @@
  */
 package org.springframework.data.relational.core.mapping;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 
 import org.springframework.data.mapping.PersistentPropertyPath;
-import org.springframework.data.relational.core.sql.SqlIdentifier;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -127,6 +119,8 @@ class DefaultAggregatePath implements AggregatePath {
 		return !isRoot() && //
 				(getRequiredLeafProperty().isCollectionLike() //
 						|| getRequiredLeafProperty().isQualified() //
+						// TODO: Considering the parent as multi-valued burries the scope of this method.
+						// this needs to be resolved
 						|| getParentPath().isMultiValued() //
 				);
 	}
@@ -181,84 +175,8 @@ class DefaultAggregatePath implements AggregatePath {
 	}
 
 	@Override
-	public TableInfo getTableInfo() {
-
-		AggregatePath tableOwner = getTableOwningAncestor();
-
-		RelationalPersistentEntity<?> leafEntity = tableOwner.getRequiredLeafEntity();
-		SqlIdentifier qualifiedTableName = leafEntity.getQualifiedTableName();
-
-		SqlIdentifier tableAlias = tableOwner.isRoot() ? null : constructTableAlias(tableOwner);
-
-		ColumnInfo reverseColumnInfo = null;
-		if (!tableOwner.isRoot()) {
-
-			AggregatePath idDefiningParentPath = tableOwner.getIdDefiningParentPath();
-			RelationalPersistentProperty leafProperty = tableOwner.getRequiredLeafProperty();
-
-			SqlIdentifier reverseColumnName = leafProperty.getReverseColumnName(idDefiningParentPath.getRequiredLeafEntity());
-
-			reverseColumnInfo = new ColumnInfo(reverseColumnName, prefixWithTableAlias(reverseColumnName));
-		}
-
-		ColumnInfo qualifierColumnInfo = null;
-		if (!isRoot()) {
-
-			SqlIdentifier keyColumn = getRequiredLeafProperty().getKeyColumn();
-			if (keyColumn != null) {
-				qualifierColumnInfo = new ColumnInfo(keyColumn, keyColumn);
-			}
-		}
-
-		Class<?> qualifierColumnType = null;
-		if (!isRoot() && getRequiredLeafProperty().isQualified()) {
-			qualifierColumnType = getRequiredLeafProperty().getQualifierColumnType();
-		}
-
-		SqlIdentifier idColumnName = leafEntity.hasIdProperty() ? leafEntity.getIdColumn() : null;
-
-		SqlIdentifier effectiveIdColumnName = tableOwner.isRoot() ? idColumnName : reverseColumnInfo.name();
-
-		return new TableInfo(qualifiedTableName, tableAlias, reverseColumnInfo, qualifierColumnInfo, qualifierColumnType,
-				idColumnName, effectiveIdColumnName);
-	}
-
-	private static SqlIdentifier constructTableAlias(AggregatePath path) {
-
-		String alias = path.stream() //
-				.filter(p -> !p.isRoot()) //
-				.map(p -> p.isEmbedded() //
-						? p.getRequiredLeafProperty().getEmbeddedPrefix()//
-						: p.getRequiredLeafProperty().getName() + (p == path ? "" : "_") //
-				) //
-				.collect(new ReverseJoinCollector());
-		return SqlIdentifier.quoted(alias);
-	}
-
-	@Override
-	public ColumnInfo getColumnInfo() {
-
-		Assert.state(!isRoot(), "Path is null");
-
-		SqlIdentifier name = assembleColumnName(getRequiredLeafProperty().getColumnName());
-		return new ColumnInfo(name, prefixWithTableAlias(name));
-	}
-
-	private SqlIdentifier assembleColumnName(SqlIdentifier suffix) {
-		return suffix.transform(constructEmbeddedPrefix()::concat);
-	}
-
-	private String constructEmbeddedPrefix() {
-
-		return stream() //
-				.filter(p -> p != this) //
-				.takeWhile(AggregatePath::isEmbedded).map(p -> p.getRequiredLeafProperty().getEmbeddedPrefix()) //
-				.collect(new ReverseJoinCollector());
-	}
-
-	@Override
 	public AggregatePath getIdDefiningParentPath() {
-		return AggregatePathTraversal.findIdDefiningPath(this);
+		return AggregatePathTraversal.getIdDefiningPath(this);
 	}
 
 	/**
@@ -268,7 +186,7 @@ class DefaultAggregatePath implements AggregatePath {
 	 * @return a path. Guaranteed to be not {@literal null}.
 	 */
 	private AggregatePath getTableOwningAncestor() {
-		return stream().filter(ap -> ap.isEntity() && !ap.isEmbedded()).findFirst().orElseThrow();
+		return AggregatePathTraversal.getTableOwningPath(this);
 	}
 
 	@Override
@@ -278,13 +196,7 @@ class DefaultAggregatePath implements AggregatePath {
 				+ ((isRoot()) ? "/" : path.toDotPath());
 	}
 
-	private SqlIdentifier prefixWithTableAlias(SqlIdentifier columnName) {
 
-		AggregatePath tableOwner = getTableOwningAncestor();
-		SqlIdentifier tableAlias = tableOwner.isRoot() ? null : constructTableAlias(tableOwner);
-
-		return tableAlias == null ? columnName : columnName.transform(name -> tableAlias.getReference() + "_" + name);
-	}
 
 	@Override
 	public boolean equals(Object o) {
@@ -340,30 +252,4 @@ class DefaultAggregatePath implements AggregatePath {
 		}
 	}
 
-	private static class ReverseJoinCollector implements Collector<String, StringBuilder, String> {
-		@Override
-		public Supplier<StringBuilder> supplier() {
-			return () -> new StringBuilder();
-		}
-
-		@Override
-		public BiConsumer<StringBuilder, String> accumulator() {
-			return ((stringBuilder, s) -> stringBuilder.insert(0, s));
-		}
-
-		@Override
-		public BinaryOperator<StringBuilder> combiner() {
-			return (a, b) -> b.append(a);
-		}
-
-		@Override
-		public Function<StringBuilder, String> finisher() {
-			return StringBuilder::toString;
-		}
-
-		@Override
-		public Set<Characteristics> characteristics() {
-			return Collections.emptySet();
-		}
-	}
 }

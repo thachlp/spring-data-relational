@@ -34,6 +34,7 @@ import org.springframework.data.relational.core.sql.SqlIdentifier;
  * Tests for {@link AggregatePath}.
  *
  * @author Jens Schauder
+ * @author Mark Paluch
  */
 class DefaultAggregatePathUnitTests {
 	RelationalMappingContext context = new RelationalMappingContext();
@@ -227,7 +228,12 @@ class DefaultAggregatePathUnitTests {
 			softly.assertThat(path().isMultiValued()).isFalse();
 			softly.assertThat(path("second").isMultiValued()).isFalse();
 			softly.assertThat(path("second.third2").isMultiValued()).isFalse();
-			softly.assertThat(path("secondList.third2").isMultiValued()).isTrue();
+			softly.assertThat(path("secondList.third2").isMultiValued()).isTrue(); // this seems wrong as third2 is an
+																																							// embedded path into Second, held by
+																																							// List<Second> (so the parent is
+																																							// multi-valued but not third2).
+			// TODO: This test fails because MultiValued considers parents.
+			// softly.assertThat(path("secondList.third.value").isMultiValued()).isFalse();
 			softly.assertThat(path("secondList").isMultiValued()).isTrue();
 		});
 	}
