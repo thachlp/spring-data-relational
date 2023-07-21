@@ -66,6 +66,11 @@ class SqlGenerator {
 	static final SqlIdentifier IDS_SQL_PARAMETER = SqlIdentifier.unquoted("ids");
 	static final SqlIdentifier ROOT_ID_PARAMETER = SqlIdentifier.unquoted("rootId");
 
+	/**
+	 * Length of an aggregate path that is one longer then the root path.
+	 */
+	private static final int FIRST_NON_ROOT_LENTH = 2;
+
 	private final RelationalPersistentEntity<?> entity;
 	private final RelationalMappingContext mappingContext;
 	private final RenderContext renderContext;
@@ -113,6 +118,40 @@ class SqlGenerator {
 	}
 
 	/**
+	 * When deleting entities there is a fundamental difference between deleting
+	 * <ol>
+	 * <li>the aggregate root.</li>
+	 * <li>a first level entity which still references the root id directly</li>
+	 * <li>and all other entities which have to use a subselect to navigate from the id of the aggregate root to something
+	 * referenced by the table in question.</li>
+	 * </ol>
+	 * For paths of the second kind this method returns {@literal true}.
+	 *
+	 * @param path the path to analyze.
+	 * @return If the given path is considered deeply nested.
+	 */
+	private static boolean isFirstNonRoot(AggregatePath path) {
+		return path.getLength() == FIRST_NON_ROOT_LENTH;
+	}
+
+	/**
+	 * When deleting entities there is a fundamental difference between deleting
+	 * <ol>
+	 * <li>the aggregate root.</li>
+	 * <li>a first level entity which still references the root id directly</li>
+	 * <li>and all other entities which have to use a subselect to navigate from the id of the aggregate root to something
+	 * referenced by the table in question.</li>
+	 * </ol>
+	 * For paths of the third kind this method returns {@literal true}.
+	 *
+	 * @param path the path to analyze.
+	 * @return If the given path is considered deeply nested.
+	 */
+	private static boolean isDeeplyNested(AggregatePath path) {
+		return path.getLength() > FIRST_NON_ROOT_LENTH;
+	}
+
+	/**
 	 * Construct an IN-condition based on a {@link Select Sub-Select} which selects the ids (or stand-ins for ids) of the
 	 * given {@literal path} to those that reference the root entities specified by the {@literal rootCondition}.
 	 *
@@ -126,9 +165,8 @@ class SqlGenerator {
 
 		AggregatePath parentPath = path.getParentPath();
 
-		// TODO: Introduce methods to express what >2 and == 2 means
 		if (!parentPath.hasIdProperty()) {
-			if (parentPath.getLength() > 2) {
+			if (isDeeplyNested(parentPath)) {
 				return getSubselectCondition(parentPath, rootCondition, filterColumn);
 			}
 			return rootCondition.apply(filterColumn);
@@ -140,7 +178,7 @@ class SqlGenerator {
 
 		Condition innerCondition;
 
-		if (parentPath.getLength() == 2) { // if the parent is the root of the path
+		if (isFirstNonRoot(parentPath)) { // if the parent is the root of the path
 
 			// apply the rootCondition
 			innerCondition = rootCondition.apply(selectFilterColumn);
@@ -719,7 +757,7 @@ class SqlGenerator {
 
 		Column filterColumn = table.column(path.getTableInfo().reverseColumnInfo().name());
 
-		if (path.getLength() == 2) {
+		if (isFirstNonRoot(path)) {
 
 			delete = builder //
 					.where(rootCondition.apply(filterColumn)) //
