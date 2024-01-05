@@ -1,7 +1,8 @@
 repo_name: thachlp/spring-data-relational
 report_id: 1436219671bdd9dc48e90306fceea708
+version: 0.1
 repo_type: Public
-timestamp: '2023-11-10T02:39:50+00:00'
+timestamp: '2024-01-05T09:02:53+00:00'
 requested_by: sxhinzvc
 provider: github
 branch: main
@@ -16,6 +17,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/995/K85ZWV2F.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational
   detection_source: Repo Metadata
 - name: Kotlin
   description: Statically typed Programming Language targeting JVM and JavaScript
@@ -25,6 +27,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/3750/pCfEzr6L.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational
   detection_source: Repo Metadata
 - name: SQL
   description: It is a domain-specific language used in programming
@@ -34,7 +37,8 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/2271/default_068d33483bba6b81ee13fbd4dc7aab9780896a54.png
-  detection_source: spring-data-r2dbc/src/test/resources/org/springframework/data/r2dbc/connectionfactory/init/users-schema.sql
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/src/test/resources/org.springframework.data.jdbc.core.dialect/PostgresDialectIntegrationTests-postgres.sql
+  detection_source: spring-data-jdbc/src/test/resources/org.springframework.data.jdbc.core.dialect/PostgresDialectIntegrationTests-postgres.sql
   last_updated_by: Nikita Konev
   last_updated_on: 2021-07-04 23:47:41.000000000 Z
 - name: Project Reactor
@@ -45,6 +49,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Java Tools
   image_url: https://img.stackshare.io/service/5807/default_cbd8ab670309059d7e315252d307d409aa40d793.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-r2dbc/pom.xml
   detection_source: spring-data-r2dbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-04-11 08:49:57.000000000 Z
@@ -58,7 +63,8 @@ tools:
   category: Languages & Frameworks
   sub_category: Frameworks (Full Stack)
   image_url: https://img.stackshare.io/service/2006/spring-framework-project-logo.png
-  detection_source: spring-data-relational/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
 - name: H2 Database
@@ -69,6 +75,7 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/3105/h2-logo_square_400x400.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
   detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
@@ -80,6 +87,7 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/6958/yQ4763oZ_400x400.jpg
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
   detection_source: spring-data-jdbc/pom.xml
   last_updated_by: tlang
   last_updated_on: 2018-09-27 06:32:45.000000000 Z
@@ -92,6 +100,7 @@ tools:
   category: Data Stores
   sub_category: Database Tools
   image_url: https://img.stackshare.io/service/1398/y1As8_s5_400x400.jpg
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
   detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
@@ -104,7 +113,8 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/2445/ZKsJsucq_400x400.jpg
-  detection_source: spring-data-r2dbc/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: tlang
   last_updated_on: 2018-09-27 06:32:45.000000000 Z
 - name: MariaDB
@@ -116,7 +126,8 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/1615/mariadb-logo-400x400.png
-  detection_source: spring-data-r2dbc/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
 - name: Microsoft SQL Server
@@ -127,7 +138,8 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/1027/sql_server.png
-  detection_source: spring-data-r2dbc/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
 - name: MyBatis
@@ -139,6 +151,7 @@ tools:
   category: Data Stores
   sub_category: Object Relational Mapper (ORM)
   image_url: https://img.stackshare.io/service/5582/1483254.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
   detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2018-10-11 14:13:25.000000000 Z
@@ -150,7 +163,8 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/1025/logo-mysql-170x170.png
-  detection_source: spring-data-r2dbc/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: tlang
   last_updated_on: 2018-09-27 06:32:45.000000000 Z
 - name: PostgreSQL
@@ -161,7 +175,8 @@ tools:
   category: Data Stores
   sub_category: Databases
   image_url: https://img.stackshare.io/service/1028/ASOhU5xJ.png
-  detection_source: spring-data-r2dbc/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
 - name: Spring Data
@@ -174,7 +189,8 @@ tools:
   category: Data Stores
   sub_category: Database Tools
   image_url: https://img.stackshare.io/service/7624/IG6D4Ro2_400x400.png
-  detection_source: spring-data-relational/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/pom.xml
+  detection_source: spring-data-jdbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-06-06 06:47:21.000000000 Z
 - name: FindBugs
@@ -185,6 +201,7 @@ tools:
   category: Build, Test, Deploy
   sub_category: Code Review
   image_url: https://img.stackshare.io/service/2662/kWjFjx3K_400x400.jpg
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-relational/pom.xml
   detection_source: spring-data-relational/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2018-10-11 14:13:25.000000000 Z
@@ -196,6 +213,7 @@ tools:
   category: Build, Test, Deploy
   sub_category: Version Control System
   image_url: https://img.stackshare.io/service/1046/git.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational
   detection_source: Repo Metadata
 - name: GitHub Actions
   description: Automate your workflow from idea to production
@@ -205,7 +223,8 @@ tools:
   category: Build, Test, Deploy
   sub_category: Continuous Integration
   image_url: https://img.stackshare.io/service/11563/actions.png
-  detection_source: ".github/workflows/project.yml"
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/.github/workflows/codeql.yml
+  detection_source: ".github/workflows/codeql.yml"
   last_updated_by: Jorge
   last_updated_on: 2023-07-04 06:07:34.000000000 Z
 - name: Logback
@@ -216,7 +235,8 @@ tools:
   category: Monitoring
   sub_category: Log Management
   image_url: https://img.stackshare.io/service/2923/05518ecaa42841e834421e9d6987b04f_400x400.png
-  detection_source: spring-data-relational/src/test/resources/logback.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-jdbc/src/test/resources/logback.xml
+  detection_source: spring-data-jdbc/src/test/resources/logback.xml
   last_updated_by: Oliver Gierke
   last_updated_on: 2017-04-25 15:57:24.000000000 Z
 - name: Shell
@@ -228,6 +248,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/4631/default_c2062d40130562bdc836c13dbca02d318205a962.png
+  detection_source_url: https://github.com/thachlp/spring-data-relational
   detection_source: Repo Metadata
 - name: com.oracle.database.jdbc:ojdbc11
   description: Oracle JDBC Driver compatible with JDK11
@@ -237,7 +258,7 @@ tools:
   category: Libraries
   sub_category: Maven Packages
   image_url: https://img.stackshare.io/package/maven/image.png
-  detection_source_url: spring-data-r2dbc/pom.xml
+  detection_source_url: https://github.com/thachlp/spring-data-relational/blob/main/spring-data-r2dbc/pom.xml
   detection_source: spring-data-r2dbc/pom.xml
   last_updated_by: Mark Paluch
   last_updated_on: 2023-07-14 08:21:10.000000000 Z
